@@ -1,3 +1,3 @@
 # generaCRUDPhp
 Generador de codigo PHP para crear CRUD de tablas en Mysql. 
-usando MVC y isualizacion MODAL
+usando MVC y visualizacion MODAL
