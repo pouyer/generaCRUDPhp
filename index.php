@@ -11,10 +11,10 @@ $ruta = '';
 $nombre_archivo = '';
 
 // Capturar y guardar en sesión los valores de ruta y nombre_archivo cuando se ingresan
-if(isset($_POST['ruta'])) {
+if (isset($_POST['ruta'])) {
     $_SESSION['ruta'] = $_POST['ruta'];
 }
-if(isset($_POST['nombre_archivo'])) {
+if (isset($_POST['nombre_archivo'])) {
     $_SESSION['nombre_archivo'] = $_POST['nombre_archivo'];
 }
 
@@ -40,16 +40,8 @@ if (isset($_POST['generar_crud'])) {
         } else {
             // Verificar si se seleccionaron tablas
             if (isset($_POST['tabla']) && is_array($_POST['tabla'])) {
-                foreach ($_POST['tabla'] as $tabla) {
-                    require_once('include/generar_crud.php');
-                    $resultado = generar_crud_completo($tabla, $baseDatos, $ruta, $nombre_archivo);
-                    
-                    if ($resultado === true) {
-                        $mensaje .= "CRUD generado exitosamente para la tabla: $tabla<br>";
-                    } else {
-                        $mensaje .= "Error al generar CRUD para la tabla $tabla: $resultado<br>";
-                    }
-                }
+                // Aquí solo se establece un mensaje temporal
+                $mensaje = "Generando CRUD..."; // Mensaje temporal
             } else {
                 $mensaje = "No se han seleccionado tablas.";
             }
@@ -70,6 +62,13 @@ if (isset($_POST['generar_crud'])) {
     <div class="container">
         <h1 class="text-center">Generador de CRUD</h1>
         
+        <div id="mensaje" class="alert alert-info alert-dismissible fade show" role="alert" style="display: none;">
+            <span id="mensaje-text"></span>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
         <?php if (!empty($mensaje)): ?>
             <div class="alert alert-info alert-dismissible fade show" role="alert">
                 <?php echo $mensaje; ?>
@@ -80,36 +79,37 @@ if (isset($_POST['generar_crud'])) {
         <?php endif; ?>
 
         <!-- Formulario para configuración -->
-        <form action="" method="post">
-            <div class="form-group">
-                <label for="host">Host:</label>
-                <input type="text" class="form-control" id="host" name="host" value="localhost">
+        <form id="formConexion" method="post">
+            <div class="row">
+                <div class="col-md-4">
+                    <label for="host">Host:</label>
+                    <input type="text" class="form-control" id="host" name="host" >
+                </div>
+                
+                <div class="col-md-4">
+                    <label for="usuario">Usuario:</label>
+                    <input type="text" class="form-control" id="usuario" name="usuario" >
+                </div>
+                
+                <div class="col-md-4">
+                    <label for="password">Contraseña:</label>
+                    <input type="password" class="form-control" id="password" name="password" >
+                </div>
             </div>
-            
             <div class="form-group">
-                <label for="usuario">Usuario:</label>
-                <input type="text" class="form-control" id="usuario" name="usuario" value="root">
-            </div>
-            
-            <div class="form-group">
-                <label for="password">Contraseña:</label>
-                <input type="password" class="form-control" id="password" name="password">
-            </div>
-
-            <div class="form-group">
-                <label for="ruta">Ruta de destino:</label>
+                <label for="ruta">Ruta del Proyecto:</label>
                 <div class="input-group">
+                    <div class="input-group-append">
+                        <button type="button" class="btn btn-secondary" onclick="abrirExploradorCarpetas()">
+                            Seleccionar Carpeta
+                        </button>
+                    </div>
                     <input type="text" class="form-control" id="ruta" name="ruta" 
                            value="<?php echo htmlspecialchars($ruta); ?>"
                            placeholder="Seleccione o escriba la carpeta de destino...">
                     <input type="text" class="form-control" id="nombre_archivo" name="nombre_archivo" 
                            value="<?php echo htmlspecialchars($nombre_archivo); ?>"
                            placeholder="Nombre del archivo de conexión">
-                    <div class="input-group-append">
-                        <button type="button" class="btn btn-secondary" onclick="abrirExploradorCarpetas()">
-                            Seleccionar Carpeta
-                        </button>
-                    </div>
                 </div>
                 <input type="file" id="fileInput" webkitdirectory directory multiple 
                        style="display:none;" onchange="setRuta()">
@@ -129,7 +129,7 @@ if (isset($_POST['generar_crud'])) {
                 <button type="button" class="btn btn-secondary" onclick="generarConexion()">
                     Generar Archivo de Conexión
                 </button>
-                
+                <div style="margin-top: 10px;"></div>
                 <!-- Botón para mostrar tablas -->
                 <button type="submit" name="mostrar_tablas" class="btn btn-primary">
                     Mostrar Tablas
@@ -146,11 +146,16 @@ if (isset($_POST['mostrar_tablas']) || isset($_POST['base_datos'])) {
     // Seleccionar la base de datos
     if ($conexion->select_db($_POST['base_datos'])) {
         // Obtener la lista de tablas
-        $resultado = $conexion->query("SHOW TABLES");
+        $sql = "SELECT TABLE_NAME , TABLE_COMMENT\n
+                FROM information_schema.TABLES\n
+                WHERE TABLE_SCHEMA = '".$_POST['base_datos']."'\n"
+                . "AND TABLE_TYPE = 'BASE TABLE' \n
+                ORDER BY TABLE_NAME ASC";
+        $resultado = $conexion->query($sql);
         
         if ($resultado && $resultado->num_rows > 0) {
 ?>
-            <form action="include/generar_crud.php" method="post" class="mt-4">
+            <form id="formCRUD" method="post" class="mt-4">
                 <input type="hidden" name="base_datos" value="<?php echo htmlspecialchars($_POST['base_datos']); ?>">
                 <input type="hidden" name="ruta" value="<?php echo htmlspecialchars($ruta); ?>">
                 <input type="hidden" name="nombre_archivo" value="<?php echo htmlspecialchars($nombre_archivo); ?>">
@@ -168,6 +173,7 @@ if (isset($_POST['mostrar_tablas']) || isset($_POST['base_datos'])) {
                         <tr>
                             <th>Seleccionar</th>
                             <th>Tabla</th>
+                            <th>Descripción</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -177,28 +183,17 @@ if (isset($_POST['mostrar_tablas']) || isset($_POST['base_datos'])) {
                             echo "<td><input type='checkbox' name='tabla[]' value='" . 
                                  htmlspecialchars($tabla[0]) . "'></td>";
                             echo "<td>" . htmlspecialchars($tabla[0]) . "</td>";
+                            echo "<td>" . htmlspecialchars($tabla[1]) . "</td>";
                             echo "</tr>";
                         }
                         ?>
                     </tbody>
                 </table>
 
-                <button type="submit" name="generar_crud" class="btn btn-primary" 
-                        onclick="return validarSeleccion()">
+                <button type="button" name="generar_crud" class="btn btn-primary" onclick="generarCRUD()">
                     Generar CRUD
                 </button>
             </form>
-
-            <script>
-            function validarSeleccion() {
-                var checkboxes = document.querySelectorAll('input[name="tabla[]"]:checked');
-                if (checkboxes.length === 0) {
-                    alert('Por favor, seleccione al menos una tabla');
-                    return false;
-                }
-                return true;
-            }
-            </script>
 <?php
         } else {
             echo "<div class='alert alert-warning'>No se encontraron tablas en la base de datos.</div>";
@@ -235,41 +230,82 @@ if (isset($_POST['mostrar_tablas']) || isset($_POST['base_datos'])) {
         }
 
         function generarConexion() {
-            var host = document.getElementById('host').value;
-            var usuario = document.getElementById('usuario').value;
-            var password = document.getElementById('password').value;
-            var ruta = document.getElementById('ruta').value;
-            var nombreArchivo = document.getElementById('nombre_archivo').value;
-            var database = document.getElementById('base_datos').value;
+            var formData = {
+                host: $('#host').val(),
+                usuario: $('#usuario').val(),
+                password: $('#password').val(),
+                ruta: $('#ruta').val(),
+                nombre_archivo: $('#nombre_archivo').val(),
+                database: $('#base_datos').val()
+            };
 
-            if (!nombreArchivo) {
-                alert('Por favor, ingrese un nombre para el archivo de conexión');
+            $.ajax({
+                type: 'POST',
+                url: 'include/generar_conexion.php',
+                data: formData,
+                dataType: 'json',
+                success: function(response) {
+                    $('#mensaje-text').text(response.message);
+                    $('#mensaje').removeClass('alert-info').addClass(response.success ? 'alert-success' : 'alert-danger').show();
+                },
+                error: function() {
+                    $('#mensaje-text').text('Error al procesar la solicitud.');
+                    $('#mensaje').removeClass('alert-info').addClass('alert-danger').show();
+                }
+            });
+        }
+
+        function validarSeleccion() {
+                var checkboxes = document.querySelectorAll('input[name="tabla[]"]:checked');
+                if (checkboxes.length === 0) {
+                    alert('Por favor, seleccione al menos una tabla');
+                    return false;
+                }
+                return true;
+            }
+            
+        // Función para generar el CRUD
+        function generarCRUD() {
+            var tablasSeleccionadas = $('input[name="tabla[]"]:checked').map(function() {
+                return this.value;
+            }).get();
+
+            if (tablasSeleccionadas.length === 0) {
+                alert('Por favor, seleccione al menos una tabla.');
                 return;
             }
 
-            var form = document.createElement('form');
-            form.method = 'POST';
-            form.action = 'include/generar_conexion.php';
-
-            var campos = {
-                'host': host,
-                'usuario': usuario,
-                'password': password,
-                'ruta': ruta,
-                'database': database,
-                'nombre_archivo': nombreArchivo
+            var formData = {
+                tabla: tablasSeleccionadas,
+                base_datos: $('#base_datos').val(),
+                ruta: $('#ruta').val(),
+                nombre_archivo: $('#nombre_archivo').val()
             };
 
-            for (var key in campos) {
-                var input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = campos[key];
-                form.appendChild(input);
-            }
+            console.log(formData); // Agrega esta línea para depurar
 
-            document.body.appendChild(form);
-            form.submit();
+            $.ajax({
+                type: 'POST',
+                url: 'include/generar_crud.php',
+                data: formData,
+                dataType: 'json',
+                success: function(response) {
+                    // Limpiar el texto del mensaje antes de agregar nuevos mensajes
+                    $('#mensaje-text').empty();
+
+                    // Iterar sobre los mensajes y agregarlos al texto del mensaje
+                    response.messages.forEach(function(message) {
+                        $('#mensaje-text').append(message + '<br>'); // Agregar cada mensaje en una nueva línea
+                    });
+
+                    $('#mensaje').removeClass('alert-info').addClass(response.success ? 'alert-success' : 'alert-danger').show();
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error:", error); // Log del error en la consola
+                    $('#mensaje-text').text('Error al procesar la solicitud: ' + error);
+                    $('#mensaje').removeClass('alert-info').addClass('alert-danger').show();
+                }
+            });
         }
 
         // También actualizar la sesión cuando se cambia el nombre del archivo

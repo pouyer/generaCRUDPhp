@@ -8,12 +8,13 @@ function generar_vista($tabla, $campos, $directorio) {
     $contenido .= "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
     $contenido .= "    <title>$nombreClase - Vista</title>\n";
     $contenido .= "    <link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css\">\n";
+    $contenido .= "    <link rel=\"stylesheet\" href=\"../css/estilos.css\">\n";
     $contenido .= "</head>\n";
     $contenido .= "<body>\n";
     $contenido .= "    <div class=\"container\">\n";
     $contenido .= "        <h1 class=\"text-center\">$nombreClase</h1>\n";
     $contenido .= "        <button class=\"btn btn-primary\" data-toggle=\"modal\" data-target=\"#modalCrear\">Crear</button>\n";
-    $contenido .= "        <table class=\"table table-striped mt-3\">\n";
+    $contenido .= "        <table class=\"table table-striped table-sm mt-3\">\n";
     $contenido .= "            <thead>\n";
     $contenido .= "                <tr>\n";
 
@@ -39,14 +40,14 @@ function generar_vista($tabla, $campos, $directorio) {
         $contenido .= "                    <td><?php echo htmlspecialchars(\$registro['" . $campo['Field'] . "']); ?></td>\n";
     }
     $contenido .= "                    <td>\n";
-    $contenido .= "                        <button class=\"btn btn-warning\" data-toggle=\"modal\" data-target=\"#modalActualizar\" data-id=\"<?php echo \$registro['" . $campos[0]['Field'] . "']; ?>\"";
+    $contenido .= "                        <button class=\"btn btn-warning\" data-toggle=\"modal\" data-target=\"#modalActualizar\" data-idActualizar=\"<?php echo \$registro['" . $campos[0]['Field'] . "']; ?>\"";
 
     // Agregar atributos data-* para cada campo que se desea cargar
     foreach ($campos as $campo) {
-        $contenido .= " data-" . htmlspecialchars($campo['Field']) . "=\"<?php echo htmlspecialchars(\$registro['" . $campo['Field'] . "']); ?>\"";
+        $contenido .= "\n                           data-" . htmlspecialchars($campo['Field']) . "=\"<?php echo htmlspecialchars(\$registro['" . $campo['Field'] . "']); ?>\"";
     }
     $contenido .= ">Actualizar</button>\n"; // Asegúrate de que 'nombre' sea un campo válido
-    $contenido .= "                        <button class=\"btn btn-danger\" onclick=\"eliminar(<?php echo \$registro['" . $campos[0]['Field'] . "']; ?>)\">Eliminar</button>\n";
+    $contenido .= "                        <button class=\"btn btn-danger\" onclick=\"eliminar('<?php echo htmlspecialchars(\$registro['" . $campos[0]['Field'] . "']); ?>')\">Eliminar</button>\n";
     $contenido .= "                    </td>\n";
     $contenido .= "                </tr>\n";
     $contenido .= "                <?php endforeach; else: ?>\n";
@@ -70,15 +71,16 @@ function generar_vista($tabla, $campos, $directorio) {
 
     // Campos del formulario de creación
     foreach ($campos as $campo) {
-        if ($campo['Extra'] != 'auto_increment' && $campo['Key'] != 'PRI' && $campo['Default'] != 'current_timestamp()') { // Excluimos la llave primaria, campos auto_increment y CURRENT_TIMESTAMP
+        
+        if ($campo['Extra'] != 'auto_increment' && $campo['Extra'] != 'on update current_timestamp()'  && $campo['Key'] != 'PRI' && $campo['Default'] != 'current_timestamp()' ) { // Excluimos la llave primaria, campos auto_increment y CURRENT_TIMESTAMP
             $contenido .= "                            <div class=\"form-group\">\n";
             $contenido .= "                                <label for=\"{$campo['Field']}\">" . htmlspecialchars($campo['Field']) . ":</label>\n";
             if (strpos($campo['Type'], 'date') !== false || strpos($campo['Type'], 'datetime') !== false) {
-                $contenido .= "                                <input type=\"date\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\" required>\n";
+                $contenido .= "                                <input type=\"date\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\"" . ($campo['Null'] == 'NO' ? ' required' : '') . ">\n";
             } elseif (strpos($campo['Type'], 'int') !== false || strpos($campo['Type'], 'float') !== false) {
-                $contenido .= "                                <input type=\"number\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\" required>\n";
+                $contenido .= "                                <input type=\"number\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\"" . ($campo['Null'] == 'NO' ? ' required' : '') . ">\n";
             } else {
-                $contenido .= "                                <input type=\"text\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\" required>\n";
+                $contenido .= "                                <input type=\"text\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\"" . ($campo['Null'] == 'NO' ? ' required' : '') . ">\n";
             }
             $contenido .= "                            </div>\n";
         }
@@ -106,23 +108,24 @@ function generar_vista($tabla, $campos, $directorio) {
 
     // Campos del formulario de actualización
     foreach ($campos as $campo) {
-        if ($campo['Default'] != 'current_timestamp()') { // Excluimos CURRENT_TIMESTAMP
+        if ($campo['Default'] != 'current_timestamp()' && $campo['Extra'] != 'on update current_timestamp()') { // Excluimos CURRENT_TIMESTAMP
             $contenido .= "                            <div class=\"form-group\">\n";
             $contenido .= "                                <label for=\"{$campo['Field']}\">" . htmlspecialchars($campo['Field']) . ":</label>\n";
             
             // Si es la llave primaria, mostrar como solo lectura
             if ($campo['Key'] == 'PRI') {
                 $contenido .= "                                <input type=\"text\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\" value=\"<?php echo htmlspecialchars(\$registro['{$campo['Field']}']); ?>\" readonly>\n";
-            } else {
+            } else 
+                {
                 if (strpos($campo['Type'], 'date') !== false || strpos($campo['Type'], 'datetime') !== false) {
-                    $contenido .= "                                <input type=\"date\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\" required>\n";
+                    $contenido .= "                                <input type=\"date\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\"" . ($campo['Null'] == 'NO' ? ' required' : '') . ">\n";
                 } elseif (strpos($campo['Type'], 'int') !== false || strpos($campo['Type'], 'float') !== false) {
-                    $contenido .= "                                <input type=\"number\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\" required>\n";
+                    $contenido .= "                                <input type=\"number\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\"" . ($campo['Null'] == 'NO' ? ' required' : '') . ">\n";
                 } else {
-                    $contenido .= "                                <input type=\"text\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\" required>\n";
+                    $contenido .= "                                <input type=\"text\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\"" . ($campo['Null'] == 'NO' ? ' required' : '') . ">\n";
                 }
-            }
             $contenido .= "                            </div>\n";
+            }
         }
     }
 
@@ -197,7 +200,7 @@ function generar_vista($tabla, $campos, $directorio) {
     // Script para cargar datos en el modal de actualización
     $contenido .= "                $('#modalActualizar').on('show.bs.modal', function(event) {\n";
     $contenido .= "                    var button = $(event.relatedTarget);\n";
-    $contenido .= "                    var id = button.data('id');\n";
+    $contenido .= "                    var id = button.data('idActualizar');\n";
     $contenido .= "                    var modal = $(this);\n";
     $contenido .= "                    modal.find('#idActualizar').val(id);\n";
 
@@ -216,6 +219,17 @@ function generar_vista($tabla, $campos, $directorio) {
     $contenido .= "</html>\n";
 
     $archivo = "$directorio/vista_$tabla.php";
+    return file_put_contents($archivo, $contenido) !== false;
+}
+
+function generar_vista_css($directorio) {
+    $contenido = "   body {
+       font-size: 0.9rem; /* Ajustar el tamaño de fuente general */
+   }
+   .table th, .table td {
+       font-size: 0.85rem; /* Ajustar el tamaño de fuente de la tabla */
+   }";
+    $archivo = "$directorio/estilos.css";
     return file_put_contents($archivo, $contenido) !== false;
 }
 ?>

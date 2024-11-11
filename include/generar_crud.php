@@ -4,9 +4,28 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 // Verificar que tenemos todos los datos necesarios
-if (!isset($_POST['tabla']) || !isset($_POST['base_datos']) || 
-    !isset($_POST['ruta']) || !isset($_POST['nombre_archivo'])) {
-    die("Error: Faltan datos necesarios para generar el CRUD");
+$missingFields = [];
+
+if (!isset($_POST['tabla'])) {
+    $missingFields[] = 'tabla';
+}
+if (!isset($_POST['base_datos'])) {
+    $missingFields[] = 'base_datos';
+}
+if (!isset($_POST['ruta'])) {
+    $missingFields[] = 'ruta';
+}
+if (!isset($_POST['nombre_archivo'])) {
+    $missingFields[] = 'nombre_archivo';
+}
+
+if (!empty($missingFields)) {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => false,
+        'message' => "Error: Faltan los siguientes campos necesarios para generar el CRUD: " . implode(', ', $missingFields)
+    ]);
+    exit;
 }
 
 // Incluir todos los archivos necesarios
@@ -48,8 +67,9 @@ function generar_crud_completo($tabla, $baseDatos, $ruta, $nombre_archivo) {
         $dirModelos = $ruta . "/modelos";
         $dirVistas = $ruta . "/vistas";
         $dirControladores = $ruta . "/controladores";
+        $dirCss = $ruta . "/css";
 
-        foreach ([$dirModelos, $dirVistas, $dirControladores] as $dir) {
+        foreach ([$dirModelos, $dirVistas, $dirControladores, $dirCss] as $dir) {
             if (!file_exists($dir)) {
                 if (!mkdir($dir, 0777, true)) {
                     throw new Exception("Error al crear el directorio: $dir");
@@ -57,26 +77,31 @@ function generar_crud_completo($tabla, $baseDatos, $ruta, $nombre_archivo) {
             }
         }
 
-        // generamos el modelo
+        // Generamos el modelo
         $resultadoModelo = generar_modelo($tabla, $campos, $dirModelos, $nombre_archivo);
         if ($resultadoModelo !== true) {
             throw new Exception("Error al generar el modelo");
         }
 
-        // generamos la vista
+        // Generamos la vista
         $resultadoVista = generar_vista($tabla, $campos, $dirVistas);
-        if ($resultadoVista !== true ) {
+        if ($resultadoVista !== true) {
             throw new Exception("Error al generar la vista");
         }
 
-        // generamos el controlador
-        $resultadoControlador = generar_controlador($tabla, $campos, $dirControladores, $nombre_archivo);
+        // Generamos el css
+        $resultadoCss = generar_vista_css($dirCss);
+        if ($resultadoCss !== true) {
+            throw new Exception("Error al generar el css");
+        }
 
-        if ( $resultadoControlador !== true) {
+        // Generamos el controlador
+        $resultadoControlador = generar_controlador($tabla, $campos, $dirControladores, $nombre_archivo);
+        if ($resultadoControlador !== true) {
             throw new Exception("Error al generar el controlador");
         }
         
-       return true;
+        return true;
 
     } catch (Exception $e) {
         return "Error en tabla $tabla: " . $e->getMessage();
@@ -103,7 +128,7 @@ foreach ($_POST['tabla'] as $tabla) {
 // Devolver resultados
 header('Content-Type: application/json');
 echo json_encode([
-    'status' => 'completed',
+    'success' => true,
     'messages' => $resultados
 ]);
 ?>
