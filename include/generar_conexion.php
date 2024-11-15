@@ -1,4 +1,14 @@
 <?php
+if (!function_exists('str_ends_with')) {
+    function str_ends_with($haystack, $needle) {
+        $length = strlen($needle);
+        if ($length == 0) {
+            return true;
+        }
+        return (substr($haystack, -$length) === $needle);
+    }
+}
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Obtener los datos del formulario
     $host = $_POST['host'];

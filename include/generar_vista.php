@@ -1,7 +1,11 @@
 <?php
 function generar_vista($tabla, $campos, $directorio) {
     $nombreClase = ucfirst($tabla);
-    $contenido = "<!DOCTYPE html>\n";
+    $contenido =  "<?php\n";
+    $contenido .= "    \$registrosPorPagina = isset(\$_GET['registrosPorPagina']) ? (int)\$_GET['registrosPorPagina'] : 10;\n"; // Definir variable
+    $contenido .= "    \$paginaActual = isset(\$_GET['pagina']) ? (int)\$_GET['pagina'] : 1;\n"; // Definir variable
+    $contenido .= "?>\n";
+    $contenido .= "<!DOCTYPE html>\n";
     $contenido .= "<html lang=\"es\">\n";
     $contenido .= "<head>\n";
     $contenido .= "    <meta charset=\"UTF-8\">\n";
@@ -13,7 +17,16 @@ function generar_vista($tabla, $campos, $directorio) {
     $contenido .= "<body>\n";
     $contenido .= "    <div class=\"container\">\n";
     $contenido .= "        <h1 class=\"text-center\">$nombreClase</h1>\n";
-    $contenido .= "        <button class=\"btn btn-primary\" data-toggle=\"modal\" data-target=\"#modalCrear\">Crear</button>\n";
+    $contenido .= "        <button class=\"btn btn-primary mb-3\" data-toggle=\"modal\" data-target=\"#modalCrear\">Crear</button>\n"; // Agregar margen inferior
+     // Agregar el formulario de búsqueda
+     $contenido .= "        <form method=\"GET\" action=\"../controladores/controlador_$tabla.php\" class=\"form-inline ml-3\">\n"; // Asegúrate de que la acción apunte al controlador
+     $contenido .= "            <input type=\"text\" name=\"busqueda\" class=\"form-control mr-2\" placeholder=\"Buscar...\" style=\"width: 700px;\">\n"; // Campo de búsqueda
+     $contenido .= "            <input type=\"hidden\" name=\"action\" value=\"buscar\">\n"; // Campo oculto para la acción
+     $contenido .= "            <input type=\"hidden\" name=\"registrosPorPagina\" value=\"<?= \$registrosPorPagina ?>\">\n"; // Número de registros por página
+     $contenido .= "            <input type=\"hidden\" name=\"pagina\" value=\"<?= \$paginaActual ?>\">\n"; // Página actual
+     $contenido .= "            <button type=\"submit\" class=\"btn btn-secondary\">Buscar</button>\n"; // Botón de búsqueda
+     $contenido .= "        </form>\n";
+     // definicion de la tabla
     $contenido .= "        <table class=\"table table-striped table-sm mt-3\">\n";
     $contenido .= "            <thead>\n";
     $contenido .= "                <tr>\n";
@@ -29,12 +42,27 @@ function generar_vista($tabla, $campos, $directorio) {
     $contenido .= "                <?php\n";
     $contenido .= "                require_once '../modelos/modelo_$tabla.php';\n";
     $contenido .= "                \$modelo = new Modelo$nombreClase();\n";
-    $contenido .= "                \$registros = \$modelo->obtenerTodos();\n";
+    $contenido .= "                \$termino = \$_GET['busqueda'] ?? ''; // Inicializar la variable \$termino\n";
+    $contenido .= "                \$registrosPorPagina = isset(\$_GET['registrosPorPagina']) ? (int)\$_GET['registrosPorPagina'] : 10;\n";
+    $contenido .= "                \$paginaActual = isset(\$_GET['pagina']) ? (int)\$_GET['pagina'] : 1;\n";
+    $contenido .= " 			   \$offset = (\$paginaActual - 1) * \$registrosPorPagina; // Calcular el offset para la paginación\n";
+    $contenido .= "				   	// Verifica si se está realizando una búsqueda \n"; 
+    $contenido .= " 			   	if (isset(\$_GET['action']) && \$_GET['action'] === 'buscar') { \n";		
+    $contenido .= " 			   	// Si se está buscando, obtenemos los registros filtrados \n";
+    $contenido .= " 			   	\$termino = \$_GET['busqueda'] ?? ''; \n";
+    $contenido .= " 			   	\$totalRegistros = \$modelo->contarRegistrosPorBusqueda(\$termino); // Contar registros que coinciden con la búsqueda\n";
+    $contenido .= " 			   	\$registros = \$modelo->buscar(\$termino, \$registrosPorPagina, \$offset); // Llama a la función de búsqueda con paginación\n";
+    $contenido .= " 			   } else { \n";
+    $contenido .= " 			   // Si no se está buscando, obtenemos todos los registros con paginación \n";
+    $contenido .= " 			    \$totalRegistros = \$modelo->contarRegistros(); // Total de registros en la base de datos\n";
+    $contenido .= " 			   	\$registros = \$modelo->obtenerTodos(\$registrosPorPagina, \$offset); // Llama a la función para obtener todos\n";
+    $contenido .= " 			   }\n";
+    $contenido .= " 			   // Verifica si hay registros y los muestra\n";
     $contenido .= "                if (\$registros):\n";
     $contenido .= "                    foreach (\$registros as \$registro):\n";
     $contenido .= "                ?>\n";
-    $contenido .= "                <tr>\n";
 
+    $contenido .= "                <tr>\n";
     // Datos de la tabla
     foreach ($campos as $campo) {
         $contenido .= "                    <td><?php echo htmlspecialchars(\$registro['" . $campo['Field'] . "']); ?></td>\n";
@@ -55,6 +83,47 @@ function generar_vista($tabla, $campos, $directorio) {
     $contenido .= "                <?php endif; ?>\n";
     $contenido .= "            </tbody>\n";
     $contenido .= "        </table>\n";
+
+    // 1. Agregar un formulario para seleccionar el número de registros por página
+    $contenido .= "        <div class=\"mb-3\">\n";
+    $contenido .= "            <form method=\"GET\" class=\"form-inline\">\n";
+    $contenido .= "                <label for=\"registrosPorPagina\" class=\"mr-2\">Registros por página:</label>\n";
+    $contenido .= "                <select id=\"registrosPorPagina\" name=\"registrosPorPagina\" class=\"form-control mr-2\" onchange=\"this.form.submit()\">\n";
+
+// Opciones del select
+foreach ([10, 20, 30, 50] as $opcion) {
+    $contenido .= "                    <option value=\"".$opcion."\" <?= \$registrosPorPagina == ".$opcion." ? 'selected' : '' ?>>".$opcion."</option>\n";
+}
+
+    $contenido .= "                </select>\n";
+    $contenido .= "                <input type=\"hidden\" name=\"pagina\" value=\"<?= \$paginaActual ?>\">\n";
+    $contenido .= "            </form>\n";
+    $contenido .= "        </div>\n";
+
+
+
+
+    // 3. Agregar la lógica de paginación
+// 3. Agregar la lógica de paginación
+$contenido .= "        <nav aria-label=\"Page navigation\">\n";
+$contenido .= "            <ul class=\"pagination\">\n";
+$contenido .= "                <?php\n";
+$contenido .= "                // Verifica si se está realizando una búsqueda\n";
+$contenido .= "                if (isset(\$_GET['action']) && \$_GET['action'] === 'buscar') {\n";
+$contenido .= "                \$termino = \$_GET['busqueda'] ?? ''; // Inicializar la variable \$termino\n";
+$contenido .= "                    \$totalRegistros = \$modelo->contarRegistrosPorBusqueda(\$termino); // Contar registros que coinciden con la búsqueda\n";
+$contenido .= "                } else {\n";
+$contenido .= "                    \$totalRegistros = \$modelo->contarRegistros(); // Total de registros en la base de datos\n";
+$contenido .= "                }\n";
+$contenido .= "                \$totalPaginas = ceil(\$totalRegistros / \$registrosPorPagina);\n";
+$contenido .= "                for (\$i = 1; \$i <= \$totalPaginas; \$i++):\n";
+$contenido .= "                ?>\n";
+$contenido .= "                    <li class=\"page-item <?= \$i == \$paginaActual ? 'active' : '' ?> \">\n";
+$contenido .= "                        <a class=\"page-link\" href=\"?pagina=<?= \$i ?>&registrosPorPagina=<?= \$registrosPorPagina ?>&busqueda=<?= urlencode(\$termino) ?>\"><?= \$i ?></a>\n";
+$contenido .= "                    </li>\n";
+$contenido .= "                <?php endfor; ?>\n";
+$contenido .= "            </ul>\n";
+$contenido .= "        </nav>\n";
 
     // Modal para crear
     $contenido .= "        <div class=\"modal fade\" id=\"modalCrear\" tabindex=\"-1\" role=\"dialog\">\n";

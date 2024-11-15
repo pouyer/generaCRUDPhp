@@ -2,12 +2,13 @@
 
     // Verificar si se seleccionó una base de datos
     // Configuración de la conexión
-    
-    $servidor = 'localhost';
-    $usuario = 'root';
-    $password = '';
+   
+ 
+   $servidor = 'localhost';
+   $usuario = 'root';
+   $password = '';
 
-
+	
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $dbname = $_POST['base_datos'];
         $conexion = new mysqli($servidor, $usuario, $password, $dbname);

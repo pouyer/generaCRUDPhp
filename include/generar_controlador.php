@@ -17,8 +17,9 @@ function generar_controlador($tabla, $campos, $directorio, $archivo_conexion) {
     $contenido .= "    }\n\n";
     
     // Método para obtener todos los registros
-    $contenido .= "    public function obtenerTodos() {\n";
-    $contenido .= "        return \$this->modelo->obtenerTodos();\n";
+    $contenido .= "    public function obtenerTodos(\$registrosPorPagina, \$pagina, \$busqueda = '') {\n";
+    $contenido .= "        \$offset = (\$pagina - 1) * \$registrosPorPagina;\n";
+    $contenido .= "        return \$this->modelo->obtenerTodos(\$registrosPorPagina, \$offset, \$busqueda);\n"; // Modificado para incluir búsqueda
     $contenido .= "    }\n\n";
     
     // Método para obtener un registro por ID
@@ -34,7 +35,17 @@ function generar_controlador($tabla, $campos, $directorio, $archivo_conexion) {
     // Método para eliminar un registro
     $contenido .= "    public function eliminar(\$id) {\n";
     $contenido .= "        return \$this->modelo->eliminar(\$id);\n";
-    $contenido .= "    }\n";
+    $contenido .= "    }\n\n";
+    
+    // Método para buscar registros
+    $contenido .= "    public function buscar(\$termino, \$registrosPorPagina, \$offset) {\n";
+    $contenido .= "        return \$this->modelo->buscar(\$termino, \$registrosPorPagina, \$offset);\n";
+    $contenido .= "    }\n\n";
+
+    // Método para contar registros encontrados en la busqueda
+    $contenido .= "    public function contarRegistrosPorBusqueda(\$termino) {\n";
+    $contenido .= "         return \$this->modelo->contarRegistrosPorBusqueda(\$termino);\n";
+    $contenido .= "    }\n\n";
     
     $contenido .= "}\n\n";
 
@@ -63,8 +74,24 @@ function generar_controlador($tabla, $campos, $directorio, $archivo_conexion) {
     $contenido .= "        echo json_encode(\$resultado);\n";
     $contenido .= "        break;\n\n";
 
+    $contenido .= "    case 'buscar':\n"; // Nueva acción para buscar
+    $contenido .= "        \$termino = \$_GET['busqueda'] ?? '';\n"; // Obtener el término de búsqueda
+    $contenido .= "        \$registrosPorPagina = \$_GET['registrosPorPagina'] ?? 10; // Número de registros por página\n";
+    $contenido .= "        \$paginaActual = \$_GET['pagina'] ?? 1; // Página actual\n";
+    $contenido .= "        \$offset = (\$paginaActual - 1) * \$registrosPorPagina; // Calcular el offset\n";
+    $contenido .= "        \$totalRegistros = \$controlador->contarRegistrosPorBusqueda(\$termino); // Contar registros que coinciden con la búsqueda\n";
+    $contenido .= "        \$totalPaginas = ceil(\$totalRegistros / \$registrosPorPagina); // Calcular total de páginas\n";       
+    $contenido .= "        \$resultado = \$controlador->buscar(\$termino, \$registrosPorPagina, \$offset);\n"; // Llamar al método de búsqueda\n";
+  //  $contenido .= "        echo json_encode(\$resultado);\n"; // Devolver el resultado en formato JSON\n";
+    $contenido .= "        // Aquí debes incluir la vista con los resultados\n";
+    $contenido .= "        include '../vistas/vista_$tabla.php'; // Incluir la vista correspondiente\n"; // Asegúrate de que la vista esté en la ruta correcta
+    $contenido .= "        break;\n\n";
+
     $contenido .= "    default:\n";
-    $contenido .= "        \$registros = \$controlador->obtenerTodos();\n";
+    $contenido .= "        \$registrosPorPagina = (int)(\$_GET['registrosPorPagina'] ?? 10); // Asegúrate de que sea un entero\n"; // Asegúrate de que sea un entero
+    $contenido .= "        \$paginaActual = (int)(\$_GET['pagina'] ?? 1); // Asegúrate de que sea un entero\n"; // Asegúrate de que sea un entero
+    $contenido .= "        \$offset = (\$paginaActual - 1) * \$registrosPorPagina; // Calcular el offset\n"; // Asegúrate de que ambas variables sean enteros
+    $contenido .= "        \$registros = \$controlador->obtenerTodos(\$registrosPorPagina, \$paginaActual);\n"; // Llama a la función con los parámetros
     $contenido .= "        include '../vistas/vista_$tabla.php'; // Incluir la vista correspondiente\n"; // Asegúrate de que la vista esté en la ruta correcta
     $contenido .= "        break;\n";
     $contenido .= "}\n";
