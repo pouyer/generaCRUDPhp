@@ -22,5 +22,6 @@ X:\XAMPP\HTDOCS\MIPROYECTO
 cada tabla queda con :
 1. paginacion
 2. Opcion Buscar por cualquier campo.
+3. Opcion de exportar en exel,csv,txt
 
 el programa principal de cada tabla es el que queda en la carpeta vistas.
