@@ -2,8 +2,8 @@
 function generar_vista($tabla, $campos, $directorio) {
     $nombreClase = ucfirst($tabla);
     $contenido =  "<?php\n";
-    $contenido .= "    \$registrosPorPagina = isset(\$_GET['registrosPorPagina']) ? (int)\$_GET['registrosPorPagina'] : 10;\n"; // Definir variable
-    $contenido .= "    \$paginaActual = isset(\$_GET['pagina']) ? (int)\$_GET['pagina'] : 1;\n"; // Definir variable
+    $contenido .= "    \$registrosPorPagina = isset(\$_GET['registrosPorPagina']) ? (int)\$_GET['registrosPorPagina'] : 10;\n";
+    $contenido .= "    \$paginaActual = isset(\$_GET['pagina']) ? (int)\$_GET['pagina'] : 1;\n";
     $contenido .= "?>\n";
     $contenido .= "<!DOCTYPE html>\n";
     $contenido .= "<html lang=\"es\">\n";
@@ -16,17 +16,40 @@ function generar_vista($tabla, $campos, $directorio) {
     $contenido .= "</head>\n";
     $contenido .= "<body>\n";
     $contenido .= "    <div class=\"container\">\n";
+    
+    // Encabezado con título y botones
     $contenido .= "        <h1 class=\"text-center\">$nombreClase</h1>\n";
-    $contenido .= "        <button class=\"btn btn-primary mb-3\" data-toggle=\"modal\" data-target=\"#modalCrear\">Crear</button>\n"; // Agregar margen inferior
-     // Agregar el formulario de búsqueda
-     $contenido .= "        <form method=\"GET\" action=\"../controladores/controlador_$tabla.php\" class=\"form-inline ml-3\">\n"; // Asegúrate de que la acción apunte al controlador
-     $contenido .= "            <input type=\"text\" name=\"busqueda\" class=\"form-control mr-2\" placeholder=\"Buscar...\" style=\"width: 700px;\">\n"; // Campo de búsqueda
-     $contenido .= "            <input type=\"hidden\" name=\"action\" value=\"buscar\">\n"; // Campo oculto para la acción
-     $contenido .= "            <input type=\"hidden\" name=\"registrosPorPagina\" value=\"<?= \$registrosPorPagina ?>\">\n"; // Número de registros por página
-     $contenido .= "            <input type=\"hidden\" name=\"pagina\" value=\"<?= \$paginaActual ?>\">\n"; // Página actual
-     $contenido .= "            <button type=\"submit\" class=\"btn btn-secondary\">Buscar</button>\n"; // Botón de búsqueda
-     $contenido .= "        </form>\n";
-     // definicion de la tabla
+    $contenido .= "        <div class=\"d-flex justify-content-between mb-3\">\n";
+    $contenido .= "            <button class=\"btn btn-primary\" data-toggle=\"modal\" data-target=\"#modalCrear\">Crear</button>\n";
+    $contenido .= "            <div class=\"btn-group\">\n";
+    $contenido .= "                <button class=\"btn btn-success dropdown-toggle\" type=\"button\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\">\n";
+    $contenido .= "                    Exportar\n";
+    $contenido .= "                </button>\n";
+    $contenido .= "                <div class=\"dropdown-menu\">\n";
+    $contenido .= "                    <a class=\"dropdown-item\" href=\"../controladores/controlador_$tabla.php?action=exportar&formato=excel&busqueda=<?php echo isset(\$_GET['busqueda']) ? urlencode(\$_GET['busqueda']) : ''; ?>\">Excel</a>\n";
+    $contenido .= "                    <a class=\"dropdown-item\" href=\"../controladores/controlador_$tabla.php?action=exportar&formato=csv&busqueda=<?php echo isset(\$_GET['busqueda']) ? urlencode(\$_GET['busqueda']) : ''; ?>\">CSV</a>\n";
+    $contenido .= "                    <a class=\"dropdown-item\" href=\"../controladores/controlador_$tabla.php?action=exportar&formato=txt&busqueda=<?php echo isset(\$_GET['busqueda']) ? urlencode(\$_GET['busqueda']) : ''; ?>\">TXT</a>\n";
+    $contenido .= "                </div>\n";
+    $contenido .= "            </div>\n";
+    $contenido .= "        </div>\n";
+    
+    // Formulario de búsqueda
+    $contenido .= "        <form method=\"GET\" action=\"../controladores/controlador_$tabla.php\" class=\"form-inline mb-3\">\n";
+    $contenido .= "            <div class=\"input-group\" style=\"width: 100%;\">\n";
+    $contenido .= "                <input type=\"text\" name=\"busqueda\" class=\"form-control\" placeholder=\"Buscar...\" value=\"<?php echo isset(\$_GET['busqueda']) ? htmlspecialchars(\$_GET['busqueda']) : ''; ?>\">\n";
+    $contenido .= "                <input type=\"hidden\" name=\"action\" value=\"buscar\">\n";
+    $contenido .= "                <input type=\"hidden\" name=\"registrosPorPagina\" value=\"<?= \$registrosPorPagina ?>\">\n";
+    $contenido .= "                <input type=\"hidden\" name=\"pagina\" value=\"<?= \$paginaActual ?>\">\n";
+    $contenido .= "                <div class=\"input-group-append\">\n";
+    $contenido .= "                    <button type=\"submit\" class=\"btn btn-secondary\">Buscar</button>\n";
+    $contenido .= "                    <?php if(isset(\$_GET['busqueda']) && \$_GET['busqueda'] !== ''): ?>\n";
+    $contenido .= "                        <a href=\"../controladores/controlador_$tabla.php\" class=\"btn btn-outline-danger\">Limpiar</a>\n";
+    $contenido .= "                    <?php endif; ?>\n";
+    $contenido .= "                </div>\n";
+    $contenido .= "            </div>\n";
+    $contenido .= "        </form>\n";
+
+    // Tabla
     $contenido .= "        <table class=\"table table-striped table-sm mt-3\">\n";
     $contenido .= "            <thead>\n";
     $contenido .= "                <tr>\n";

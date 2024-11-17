@@ -146,11 +146,10 @@ if (isset($_POST['mostrar_tablas']) || isset($_POST['base_datos'])) {
     // Seleccionar la base de datos
     if ($conexion->select_db($_POST['base_datos'])) {
         // Obtener la lista de tablas
-        $sql = "SELECT TABLE_NAME , TABLE_COMMENT\n
+        $sql = "SELECT TABLE_NAME , TABLE_COMMENT, TABLE_TYPE\n
                 FROM information_schema.TABLES\n
                 WHERE TABLE_SCHEMA = '".$_POST['base_datos']."'\n"
-                . "AND TABLE_TYPE = 'BASE TABLE' \n
-                ORDER BY TABLE_NAME ASC";
+                . "ORDER BY TABLE_NAME ASC";
         $resultado = $conexion->query($sql);
         
         if ($resultado && $resultado->num_rows > 0) {
@@ -173,6 +172,7 @@ if (isset($_POST['mostrar_tablas']) || isset($_POST['base_datos'])) {
                         <tr>
                             <th>Seleccionar</th>
                             <th>Tabla</th>
+                            <th>Tipo</th>
                             <th>Descripción</th>
                         </tr>
                     </thead>
@@ -183,6 +183,7 @@ if (isset($_POST['mostrar_tablas']) || isset($_POST['base_datos'])) {
                             echo "<td><input type='checkbox' name='tabla[]' value='" . 
                                  htmlspecialchars($tabla[0]) . "'></td>";
                             echo "<td>" . htmlspecialchars($tabla[0]) . "</td>";
+                            echo "<td>" . htmlspecialchars($tabla[2]) . "</td>";
                             echo "<td>" . htmlspecialchars($tabla[1]) . "</td>";
                             echo "</tr>";
                         }

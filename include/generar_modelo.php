@@ -255,7 +255,38 @@ function generar_modelo($tabla, $campos, $directorio, $archivo_conexion) {
     $contenido .= "        \$resultado = \$stmt->get_result();\n";
    // $contenido .= "         error_log('Resultado Condulta: ' . \$resultado); // Log para depuración\n" //quitar cuando funcione
     $contenido .= "        return \$resultado ? \$resultado->fetch_all(MYSQLI_ASSOC) : false;\n";
-    $contenido .= "    }\n";
+    $contenido .= "    }\n"; //fin funcion buscar
+
+    // funcion de exportar datos a partir de las busquedas
+    $contenido .= "    public function exportarDatos(\$termino = '') {\n";
+    $contenido .= "        try {\n";
+    $contenido .= "            \$query = \"SELECT * FROM $tabla WHERE \";\n";
+    $contenido .= "            \$camposBusqueda = [];\n";
+    foreach ($campos as $campo) {
+        $contenido .= "            \$camposBusqueda[] = \"`{$campo['Field']}`\";\n";
+    }
+    $contenido .= "            \$query .= \"CONCAT_WS(' ', \" . implode(', ', \$camposBusqueda) . \") LIKE ?\";\n";
+    $contenido .= "            if (!\$this->conexion) {\n";
+    $contenido .= "                throw new Exception('Error: No hay conexión a la base de datos');\n";
+    $contenido .= "            }\n\n";
+    $contenido .= "            \$stmt = \$this->conexion->prepare(\$query);\n";
+    $contenido .= "            if (!\$stmt) {\n";
+    $contenido .= "                throw new Exception('Error preparando la consulta: ' . \$this->conexion->error);\n";
+    $contenido .= "            }\n\n";
+    $contenido .= "            \$terminoBusqueda = empty(\$termino) ? '%' : '%' . \$termino . '%';\n";
+    $contenido .= "            \$stmt->bind_param('s', \$terminoBusqueda);\n";
+    $contenido .= "            if (!\$stmt->execute()) {\n";
+    $contenido .= "                throw new Exception('Error ejecutando la consulta: ' . \$stmt->error);\n";
+    $contenido .= "            }\n\n";
+    $contenido .= "            \$resultado = \$stmt->get_result();\n";
+    $contenido .= "            \$datos = \$resultado->fetch_all(MYSQLI_ASSOC);\n";
+    $contenido .= "            \$stmt->close();\n";
+    $contenido .= "            return \$datos;\n";
+    $contenido .= "        } catch (Exception \$e) {\n";
+    $contenido .= "            error_log('Error en exportarDatos: ' . \$e->getMessage());\n";
+    $contenido .= "            return false;\n";
+    $contenido .= "        }\n";
+    $contenido .= "    }\n\n"; //fin funcion exportarDatos
 
     $contenido .= "}\n?>"; //fin generacion clase modelo
 

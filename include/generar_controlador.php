@@ -45,9 +45,92 @@ function generar_controlador($tabla, $campos, $directorio, $archivo_conexion) {
     // Método para contar registros encontrados en la busqueda
     $contenido .= "    public function contarRegistrosPorBusqueda(\$termino) {\n";
     $contenido .= "         return \$this->modelo->contarRegistrosPorBusqueda(\$termino);\n";
-    $contenido .= "    }\n\n";
+    $contenido .= "    }\n\n"; // fin unction contarRegistrosPorBusqueda
     
-    $contenido .= "}\n\n";
+    // funcion exportar en formatos Exel, CSV, TXT
+    // Agregar los nuevos métodos de exportación
+    $contenido .= "    public function exportar(\$formato) {\n";
+    $contenido .= "        try {\n";
+    $contenido .= "            \$termino = \$_GET['busqueda'] ?? '';\n";
+    $contenido .= "            \$datos = \$this->modelo->exportarDatos(\$termino);\n";
+    $contenido .= "            if (\$datos === false) {\n";
+    $contenido .= "                throw new Exception('Error al obtener los datos para exportar');\n";
+    $contenido .= "            }\n";
+    $contenido .= "            if (empty(\$datos)) {\n";
+    $contenido .= "                throw new Exception('No hay datos para exportar');\n";
+    $contenido .= "            }\n\n";
+    $contenido .= "            \$timestamp = date('Y-m-d_H-i-s');\n";
+    $contenido .= "            \$filename = \"{$tabla}_export_{\$timestamp}\";\n";
+    $contenido .= "            if (!empty(\$termino)) {\n";
+    $contenido .= "                \$filename .= \"_busqueda_\" . preg_replace('/[^a-zA-Z0-9]/', '_', \$termino);\n";
+    $contenido .= "            }\n\n";
+    $contenido .= "            switch (\$formato) {\n";
+    $contenido .= "                case 'excel':\n";
+    $contenido .= "                    header('Content-Type: application/vnd.ms-excel');\n";
+    $contenido .= "                    header(\"Content-Disposition: attachment; filename=\\\"\$filename.xls\\\"\");\n";
+    $contenido .= "                    \$this->exportarExcel(\$datos);\n";
+    $contenido .= "                    break;\n\n";
+    $contenido .= "                case 'csv':\n";
+    $contenido .= "                    header('Content-Type: text/csv; charset=utf-8');\n";
+    $contenido .= "                    header(\"Content-Disposition: attachment; filename=\\\"\$filename.csv\\\"\");\n";
+    $contenido .= "                    \$this->exportarCSV(\$datos);\n";
+    $contenido .= "                    break;\n\n";
+    $contenido .= "                case 'txt':\n";
+    $contenido .= "                    header('Content-Type: text/plain; charset=utf-8');\n";
+    $contenido .= "                    header(\"Content-Disposition: attachment; filename=\\\"\$filename.txt\\\"\");\n";
+    $contenido .= "                    \$this->exportarTXT(\$datos);\n";
+    $contenido .= "                    break;\n";
+    $contenido .= "                default:\n";
+    $contenido .= "                    throw new Exception('Formato de exportación no válido');\n";
+    $contenido .= "            }\n";
+    $contenido .= "        } catch (Exception \$e) {\n";
+    $contenido .= "            error_log('Error en exportación: ' . \$e->getMessage());\n";
+    $contenido .= "            echo 'Error: ' . \$e->getMessage();\n";
+    $contenido .= "            exit;\n";
+    $contenido .= "        }\n";
+    $contenido .= "        exit;\n";
+    $contenido .= "    }\n\n"; // fin funcion exportar
+
+    $contenido .= "    private function exportarExcel(\$datos) {\n";
+    $contenido .= "        echo \"<table border='1'>\\n\";\n";
+    $contenido .= "        if (!empty(\$datos)) {\n";
+    $contenido .= "            echo \"<tr>\\n\";\n";
+    $contenido .= "            foreach (array_keys(\$datos[0]) as \$campo) {\n";
+    $contenido .= "                echo \"<th>\" . htmlspecialchars(\$campo) . \"</th>\\n\";\n";
+    $contenido .= "            }\n";
+    $contenido .= "            echo \"</tr>\\n\";\n";
+    $contenido .= "        }\n";
+    $contenido .= "        foreach (\$datos as \$fila) {\n";
+    $contenido .= "            echo \"<tr>\\n\";\n";
+    $contenido .= "            foreach (\$fila as \$valor) {\n";
+    $contenido .= "                echo \"<td>\" . htmlspecialchars(\$valor) . \"</td>\\n\";\n";
+    $contenido .= "            }\n";
+    $contenido .= "            echo \"</tr>\\n\";\n";
+    $contenido .= "        }\n";
+    $contenido .= "        echo \"</table>\";\n";
+    $contenido .= "    }\n\n";
+
+    $contenido .= "    private function exportarCSV(\$datos) {\n";
+    $contenido .= "        \$output = fopen('php://output', 'w');\n";
+    $contenido .= "        if (!empty(\$datos)) {\n";
+    $contenido .= "            fputcsv(\$output, array_keys(\$datos[0]));\n";
+    $contenido .= "        }\n";
+    $contenido .= "        foreach (\$datos as \$fila) {\n";
+    $contenido .= "            fputcsv(\$output, \$fila);\n";
+    $contenido .= "        }\n";
+    $contenido .= "        fclose(\$output);\n";
+    $contenido .= "    }\n\n";
+
+    $contenido .= "    private function exportarTXT(\$datos) {\n";
+    $contenido .= "        if (!empty(\$datos)) {\n";
+    $contenido .= "            echo implode(\"\\t\", array_keys(\$datos[0])) . \"\\n\";\n";
+    $contenido .= "            foreach (\$datos as \$fila) {\n";
+    $contenido .= "                echo implode(\"\\t\", \$fila) . \"\\n\";\n";
+    $contenido .= "            }\n";
+    $contenido .= "        }\n";
+    $contenido .= "    }\n\n";
+
+    $contenido .= "}\n\n"; // fin class
 
     // Manejo de las acciones
     $contenido .= "\$accion = \$_GET['action'] ?? '';\n";
@@ -85,6 +168,12 @@ function generar_controlador($tabla, $campos, $directorio, $archivo_conexion) {
   //  $contenido .= "        echo json_encode(\$resultado);\n"; // Devolver el resultado en formato JSON\n";
     $contenido .= "        // Aquí debes incluir la vista con los resultados\n";
     $contenido .= "        include '../vistas/vista_$tabla.php'; // Incluir la vista correspondiente\n"; // Asegúrate de que la vista esté en la ruta correcta
+    $contenido .= "        break;\n\n";
+
+    // accion de exportar
+    $contenido .= "    case 'exportar':\n";
+    $contenido .= "        \$formato = \$_GET['formato'] ?? 'excel';\n";
+    $contenido .= "        \$controlador->exportar(\$formato);\n";
     $contenido .= "        break;\n\n";
 
     $contenido .= "    default:\n";
