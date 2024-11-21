@@ -119,19 +119,22 @@ function generar_modelo($tabla, $campos, $directorio, $archivo_conexion, $es_vis
                     $contenido .= "        } elseif (isset(\$datos['{$campo['Field']}'])) {\n";
                     $contenido .= "            \$campos[] = '`{$campo['Field']}`';\n";
                     $contenido .= "            \$valores[] = '?';\n";
-                    $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
+                  //  $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
                     // Determinar el tipo de dato para bind_param
                     if (strpos($campo['Type'], 'int') !== false) {
+                        $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
                         $contenido .= "            \$tipos .= 'i';\n";
                     } elseif (strpos($campo['Type'], 'float') !== false || 
                             strpos($campo['Type'], 'double') !== false || 
                             strpos($campo['Type'], 'decimal') !== false) {
+                        $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";        
                         $contenido .= "            \$tipos .= 'd';\n";
                     } elseif (strpos($campo['Type'], 'date') !== false || strpos($campo['Type'], 'datetime') !== false) {
                         $contenido .= "            // Formatear fecha\n";
                         $contenido .= "            \$params[] = date('Y-m-d', strtotime(\$datos['{$campo['Field']}']));\n";
                         $contenido .= "            \$tipos .= 's';\n"; // Asumimos que se envía como string
                     } else {
+                        $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
                         $contenido .= "            \$tipos .= 's';\n";
                     }
                     
@@ -141,19 +144,22 @@ function generar_modelo($tabla, $campos, $directorio, $archivo_conexion, $es_vis
                     $contenido .= "          if (isset(\$datos['{$campo['Field']}'])) {\n";
                     $contenido .= "            \$campos[] = '`{$campo['Field']}`';\n";
                     $contenido .= "            \$valores[] = '?';\n";
-                    $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
+                    //$contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
                     // Determinar el tipo de dato para bind_param
                     if (strpos($campo['Type'], 'int') !== false) {
+                        $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
                         $contenido .= "            \$tipos .= 'i';\n";
                     } elseif (strpos($campo['Type'], 'float') !== false || 
                             strpos($campo['Type'], 'double') !== false || 
                             strpos($campo['Type'], 'decimal') !== false) {
-                        $contenido .= "            \$tipos .= 'd';\n";
+                                $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
+                                $contenido .= "            \$tipos .= 'd';\n";
                     } elseif (strpos($campo['Type'], 'date') !== false || strpos($campo['Type'], 'datetime') !== false) {
                         $contenido .= "            // Formatear fecha\n";
                         $contenido .= "            \$params[] = date('Y-m-d', strtotime(\$datos['{$campo['Field']}']));\n";
                         $contenido .= "            \$tipos .= 's';\n"; // Asumimos que se envía como string
                     } else {
+                        $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
                         $contenido .= "            \$tipos .= 's';\n";
                     }
                     
@@ -185,18 +191,21 @@ function generar_modelo($tabla, $campos, $directorio, $archivo_conexion, $es_vis
                     $contenido .= "            throw new Exception('El campo {$campo['Field']} es requerido.');\n";
                     $contenido .= "        } elseif (isset(\$datos['{$campo['Field']}'])) {\n";
                     $contenido .= "            \$actualizaciones[] = \"`{$campo['Field']}` = ?\";\n";
-                    $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
+                    //$contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
                     if (strpos($campo['Type'], 'int') !== false) {
+                        $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
                         $contenido .= "            \$tipos .= 'i';\n";
                     } elseif (strpos($campo['Type'], 'float') !== false || 
                             strpos($campo['Type'], 'double') !== false || 
                             strpos($campo['Type'], 'decimal') !== false) {
+                        $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";        
                         $contenido .= "            \$tipos .= 'd';\n";
                     } elseif (strpos($campo['Type'], 'date') !== false || strpos($campo['Type'], 'datetime') !== false) {
                         $contenido .= "            // Formatear fecha\n";
                         $contenido .= "            \$params[] = date('Y-m-d', strtotime(\$datos['{$campo['Field']}']));\n";
                         $contenido .= "            \$tipos .= 's';\n"; // Asumimos que se envía como string
                     } else {
+                        $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
                         $contenido .= "            \$tipos .= 's';\n";
                     }
                     
@@ -206,18 +215,21 @@ function generar_modelo($tabla, $campos, $directorio, $archivo_conexion, $es_vis
                     $contenido .= "        if (!empty(\$datos['{$campo['Field']}'])) {\n";
                     $contenido .= "            if (isset(\$datos['{$campo['Field']}'])) {\n";
                     $contenido .= "            \$actualizaciones[] = \"`{$campo['Field']}` = ?\";\n";
-                    $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
+                    //$contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
                     if (strpos($campo['Type'], 'int') !== false) {
+                        $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
                         $contenido .= "            \$tipos .= 'i';\n";
                     } elseif (strpos($campo['Type'], 'float') !== false || 
                             strpos($campo['Type'], 'double') !== false || 
                             strpos($campo['Type'], 'decimal') !== false) {
+                                $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
                                 $contenido .= "            \$tipos .= 'd';\n";
                     } elseif (strpos($campo['Type'], 'date') !== false || strpos($campo['Type'], 'datetime') !== false) {
                         $contenido .= "            // Formatear fecha\n";
                         $contenido .= "            \$params[] = date('Y-m-d', strtotime(\$datos['{$campo['Field']}']));\n";
                         $contenido .= "            \$tipos .= 's';\n"; // Asumimos que se envía como string
                     } else {
+                        $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
                         $contenido .= "            \$tipos .= 's';\n";
                     }
 
