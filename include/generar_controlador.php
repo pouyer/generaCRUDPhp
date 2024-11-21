@@ -1,21 +1,35 @@
 <?php
-function generar_controlador($tabla, $campos, $directorio, $archivo_conexion) {
+function generar_controlador($tabla, $campos, $directorio, $archivo_conexion, $es_vista) {
     $nombreClase = ucfirst($tabla);
     $contenido = "<?php\n";
     $contenido .= "require_once '../modelos/modelo_$tabla.php';\n\n";
     $contenido .= "class Controlador$nombreClase {\n";
-    $contenido .= "    private \$modelo;\n\n";
+    $contenido .= "    private \$modelo;\n";
+    $contenido .= "    private \$es_vista;\n\n";
     
     // Constructor
     $contenido .= "    public function __construct() {\n";
     $contenido .= "        \$this->modelo = new Modelo$nombreClase();\n";
+    $contenido .= "        \$this->es_vista = " . ($es_vista ? 'true' : 'false') . ";\n";
     $contenido .= "    }\n\n";
     
-    // Método para crear un nuevo registro
-    $contenido .= "    public function crear(\$datos) {\n";
-    $contenido .= "        return \$this->modelo->crear(\$datos);\n";
-    $contenido .= "    }\n\n";
     
+    if (!$es_vista) {
+        // Método para crear un nuevo registro    
+        $contenido .= "    public function crear(\$datos) {\n";
+        $contenido .= "        return \$this->modelo->crear(\$datos);\n";
+        $contenido .= "    }\n\n";
+
+        // Método para actualizar un registro
+        $contenido .= "    public function actualizar(\$id, \$datos) {\n";
+        $contenido .= "        return \$this->modelo->actualizar(\$id, \$datos);\n";
+        $contenido .= "    }\n\n";
+        
+        // Método para eliminar un registro
+        $contenido .= "    public function eliminar(\$id) {\n";
+        $contenido .= "        return \$this->modelo->eliminar(\$id);\n";
+        $contenido .= "    }\n\n";
+    }
     // Método para obtener todos los registros
     $contenido .= "    public function obtenerTodos(\$registrosPorPagina, \$pagina, \$busqueda = '') {\n";
     $contenido .= "        \$offset = (\$pagina - 1) * \$registrosPorPagina;\n";
@@ -25,16 +39,6 @@ function generar_controlador($tabla, $campos, $directorio, $archivo_conexion) {
     // Método para obtener un registro por ID
     $contenido .= "    public function obtenerPorId(\$id) {\n";
     $contenido .= "        return \$this->modelo->obtenerPorId(\$id);\n";
-    $contenido .= "    }\n\n";
-    
-    // Método para actualizar un registro
-    $contenido .= "    public function actualizar(\$id, \$datos) {\n";
-    $contenido .= "        return \$this->modelo->actualizar(\$id, \$datos);\n";
-    $contenido .= "    }\n\n";
-    
-    // Método para eliminar un registro
-    $contenido .= "    public function eliminar(\$id) {\n";
-    $contenido .= "        return \$this->modelo->eliminar(\$id);\n";
     $contenido .= "    }\n\n";
     
     // Método para buscar registros

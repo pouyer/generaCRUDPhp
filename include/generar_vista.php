@@ -1,5 +1,5 @@
 <?php
-function generar_vista($tabla, $campos, $directorio) {
+function generar_vista($tabla, $campos, $directorio, $es_vista) {
     $nombreClase = ucfirst($tabla);
     $contenido =  "<?php\n";
     $contenido .= "    \$registrosPorPagina = isset(\$_GET['registrosPorPagina']) ? (int)\$_GET['registrosPorPagina'] : 10;\n";
@@ -10,7 +10,7 @@ function generar_vista($tabla, $campos, $directorio) {
     $contenido .= "<head>\n";
     $contenido .= "    <meta charset=\"UTF-8\">\n";
     $contenido .= "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
-    $contenido .= "    <title>$nombreClase - Vista</title>\n";
+    $contenido .= "    <title>$nombreClase - " . ($es_vista ? "Vista" : "Tabla") . "</title>\n";
     $contenido .= "    <link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css\">\n";
     $contenido .= "    <link rel=\"stylesheet\" href=\"../css/estilos.css\">\n";
     $contenido .= "</head>\n";
@@ -20,7 +20,13 @@ function generar_vista($tabla, $campos, $directorio) {
     // Encabezado con título y botones
     $contenido .= "        <h1 class=\"text-center\">$nombreClase</h1>\n";
     $contenido .= "        <div class=\"d-flex justify-content-between mb-3\">\n";
-    $contenido .= "            <button class=\"btn btn-primary\" data-toggle=\"modal\" data-target=\"#modalCrear\">Crear</button>\n";
+    
+    // Solo mostrar botón de crear si no es una vista
+    if (!$es_vista) {
+        $contenido .= "            <button class=\"btn btn-primary\" data-toggle=\"modal\" data-target=\"#modalCrear\">Crear</button>\n";
+    } else {
+        $contenido .= "            <div></div>\n"; // Espacio vacío para mantener el layout
+    }
     $contenido .= "            <div class=\"btn-group\">\n";
     $contenido .= "                <button class=\"btn btn-success dropdown-toggle\" type=\"button\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\">\n";
     $contenido .= "                    Exportar\n";
@@ -58,7 +64,9 @@ function generar_vista($tabla, $campos, $directorio) {
     foreach ($campos as $campo) {
         $contenido .= "                    <th>" . htmlspecialchars($campo['Field']) . "</th>\n";
     }
-    $contenido .= "                    <th>Acciones</th>\n";
+    if (!$es_vista) {
+        $contenido .= "                    <th>Acciones</th>\n";
+    }    
     $contenido .= "                </tr>\n";
     $contenido .= "            </thead>\n";
     $contenido .= "            <tbody>\n";
@@ -91,15 +99,17 @@ function generar_vista($tabla, $campos, $directorio) {
         $contenido .= "                    <td><?php echo htmlspecialchars(\$registro['" . $campo['Field'] . "']); ?></td>\n";
     }
     $contenido .= "                    <td>\n";
-    $contenido .= "                        <button class=\"btn btn-warning\" data-toggle=\"modal\" data-target=\"#modalActualizar\" data-idActualizar=\"<?php echo \$registro['" . $campos[0]['Field'] . "']; ?>\"";
+    if (!$es_vista) {
+        $contenido .= "                        <button class=\"btn btn-warning\" data-toggle=\"modal\" data-target=\"#modalActualizar\" data-idActualizar=\"<?php echo \$registro['" . $campos[0]['Field'] . "']; ?>\"";
 
-    // Agregar atributos data-* para cada campo que se desea cargar
-    foreach ($campos as $campo) {
-        $contenido .= "\n                           data-" . htmlspecialchars($campo['Field']) . "=\"<?php echo htmlspecialchars(\$registro['" . $campo['Field'] . "']); ?>\"";
+        // Agregar atributos data-* para cada campo que se desea cargar
+        foreach ($campos as $campo) {
+            $contenido .= "\n                           data-" . htmlspecialchars($campo['Field']) . "=\"<?php echo htmlspecialchars(\$registro['" . $campo['Field'] . "']); ?>\"";
+        }
+        $contenido .= ">Actualizar</button>\n"; // Asegúrate de que 'nombre' sea un campo válido
+        $contenido .= "                        <button class=\"btn btn-danger\" onclick=\"eliminar('<?php echo htmlspecialchars(\$registro['" . $campos[0]['Field'] . "']); ?>')\">Eliminar</button>\n";
+        $contenido .= "                    </td>\n";
     }
-    $contenido .= ">Actualizar</button>\n"; // Asegúrate de que 'nombre' sea un campo válido
-    $contenido .= "                        <button class=\"btn btn-danger\" onclick=\"eliminar('<?php echo htmlspecialchars(\$registro['" . $campos[0]['Field'] . "']); ?>')\">Eliminar</button>\n";
-    $contenido .= "                    </td>\n";
     $contenido .= "                </tr>\n";
     $contenido .= "                <?php endforeach; else: ?>\n";
     $contenido .= "                <tr><td colspan=\"" . (count($campos) + 1) . "\">No hay registros disponibles.</td></tr>\n";

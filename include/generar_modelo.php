@@ -1,5 +1,5 @@
 <?php
-function generar_modelo($tabla, $campos, $directorio, $archivo_conexion) {
+function generar_modelo($tabla, $campos, $directorio, $archivo_conexion, $es_vista) {
     // Obtener información de la llave primaria
     global $conexion;
     $query = "SHOW COLUMNS FROM $tabla"; // Línea 5
@@ -36,16 +36,19 @@ function generar_modelo($tabla, $campos, $directorio, $archivo_conexion) {
         }
     }
 
-    if (empty($llavePrimaria)) {
-        throw new Exception("No se encontró llave primaria en la tabla $tabla");
+    if (!$es_vista) {
+        if (empty($llavePrimaria)) {
+            throw new Exception("No se encontró llave primaria en la tabla $tabla");
+        }
     }
-
     $nombreClase = ucfirst($tabla);
     $contenido = "<?php\n";
     $contenido .= "require_once '../$archivo_conexion';\n\n";
     $contenido .= "class Modelo$nombreClase {\n";
     $contenido .= "    private \$conexion;\n";
     $contenido .= "    private \$llavePrimaria = '$llavePrimaria';\n\n";
+    $contenido .= "    private \$es_vista = " . ($es_vista ? 'true' : 'false') . ";\n\n";
+
     
     // Constructor
     $contenido .= "    public function __construct() {\n";
@@ -89,155 +92,158 @@ function generar_modelo($tabla, $campos, $directorio, $archivo_conexion) {
     $contenido .= "        return \$resultado ? \$resultado->fetch_all(MYSQLI_ASSOC) : false;\n";
     $contenido .= "    }\n\n";
     
-    // Obtener un registro por llave primaria
-    $contenido .= "    public function obtenerPorId(\$id) {\n";
-    $contenido .= "        \$query = \"SELECT * FROM $tabla WHERE \$this->llavePrimaria = ?\";\n";
-    $contenido .= "        \$stmt = \$this->conexion->prepare(\$query);\n";
-    $contenido .= "        \$stmt->bind_param('$tipoPrimaria', \$id);\n";
-    $contenido .= "        \$stmt->execute();\n";
-    $contenido .= "        \$resultado = \$stmt->get_result();\n";
-    $contenido .= "        return \$resultado ? \$resultado->fetch_assoc() : false;\n";
-    $contenido .= "    }\n\n";
     
-    // Crear un nuevo registro
-    $contenido .= "    public function crear(\$datos) {\n";
-    $contenido .= "        \$campos = [];\n";
-    $contenido .= "        \$valores = [];\n";
-    $contenido .= "        \$tipos = '';\n";
-    $contenido .= "        \$params = [];\n\n";
-    foreach ($campos as $campo) { 
-        if ($campo['Field'] != $llavePrimaria && !in_array($campo['Field'], $camposAutoIncrement) && !in_array($campo['Field'], $camposCURRENT) ) {  // Excluimos la llave primaria, auto_increment y CURRENT_TIMESTAMP
-            if (in_array($campo['Field'], $camposRequeridos)) { // Solo requeridos
-                $contenido .= "        if (empty(\$datos['{$campo['Field']}'])) {\n";
-                $contenido .= "            throw new Exception('El campo {$campo['Field']} es requerido.');\n";
-                $contenido .= "        } elseif (isset(\$datos['{$campo['Field']}'])) {\n";
-                $contenido .= "            \$campos[] = '`{$campo['Field']}`';\n";
-                $contenido .= "            \$valores[] = '?';\n";
-                $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
-                // Determinar el tipo de dato para bind_param
-                if (strpos($campo['Type'], 'int') !== false) {
-                    $contenido .= "            \$tipos .= 'i';\n";
-                } elseif (strpos($campo['Type'], 'float') !== false || 
-                        strpos($campo['Type'], 'double') !== false || 
-                        strpos($campo['Type'], 'decimal') !== false) {
-                    $contenido .= "            \$tipos .= 'd';\n";
-                } elseif (strpos($campo['Type'], 'date') !== false || strpos($campo['Type'], 'datetime') !== false) {
-                    $contenido .= "            // Formatear fecha\n";
-                    $contenido .= "            \$params[] = date('Y-m-d', strtotime(\$datos['{$campo['Field']}']));\n";
-                    $contenido .= "            \$tipos .= 's';\n"; // Asumimos que se envía como string
-                } else {
-                    $contenido .= "            \$tipos .= 's';\n";
-                }
-                
-                $contenido .= "        }\n";
-            } else {
-                $contenido .= "        if (!empty(\$datos['{$campo['Field']}'])) {\n";
-                $contenido .= "          if (isset(\$datos['{$campo['Field']}'])) {\n";
-                $contenido .= "            \$campos[] = '`{$campo['Field']}`';\n";
-                $contenido .= "            \$valores[] = '?';\n";
-                $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
-                // Determinar el tipo de dato para bind_param
-                if (strpos($campo['Type'], 'int') !== false) {
-                    $contenido .= "            \$tipos .= 'i';\n";
-                } elseif (strpos($campo['Type'], 'float') !== false || 
-                        strpos($campo['Type'], 'double') !== false || 
-                        strpos($campo['Type'], 'decimal') !== false) {
-                    $contenido .= "            \$tipos .= 'd';\n";
-                } elseif (strpos($campo['Type'], 'date') !== false || strpos($campo['Type'], 'datetime') !== false) {
-                    $contenido .= "            // Formatear fecha\n";
-                    $contenido .= "            \$params[] = date('Y-m-d', strtotime(\$datos['{$campo['Field']}']));\n";
-                    $contenido .= "            \$tipos .= 's';\n"; // Asumimos que se envía como string
-                } else {
-                    $contenido .= "            \$tipos .= 's';\n";
-                }
-                
-                $contenido .= "           }\n";
-                $contenido .= "        }\n";    
-            }   
-          
-        }
-    }
-    $contenido .= "\n        \$query = \"INSERT INTO $tabla (\" . implode(', ', \$campos) . \") VALUES (\" . implode(', ', \$valores) . \")\";\n";
-    $contenido .= "        \$stmt = \$this->conexion->prepare(\$query);\n";
-    $contenido .= "        if (!empty(\$params)) {\n";
-    $contenido .= "            \$stmt->bind_param(\$tipos, ...\$params);\n";
-    $contenido .= "        }\n";
-    $contenido .= "        return \$stmt->execute();\n";
-    $contenido .= "    }\n\n";
     
-    // Actualizar un registro
-    $contenido .= "    public function actualizar(\$id, \$datos) {\n";
-    $contenido .= "        error_log(print_r(\$datos, true)); // Verificar los datos recibidos\n";
-    $contenido .= "        \$actualizaciones = [];\n";
-    $contenido .= "        \$tipos = '';\n";
-    $contenido .= "        \$tipos_pk = '$tipoPrimaria'; // Para la llave primaria\n";
-    $contenido .= "        \$params = [];\n\n";
-    foreach ($campos as $campo) {
-        if ($campo['Field'] != $llavePrimaria && !in_array($campo['Field'], $camposAutoIncrement) && !in_array($campo['Field'], $camposCURRENT) ) {  // Excluimos la llave primaria, auto_increment y CURRENT_TIMESTAMP
-            if (in_array($campo['Field'], $camposRequeridos)) { // Solo requeridos
-                $contenido .= "        if (empty(\$datos['{$campo['Field']}'])) {\n";
-                $contenido .= "            throw new Exception('El campo {$campo['Field']} es requerido.');\n";
-                $contenido .= "        } elseif (isset(\$datos['{$campo['Field']}'])) {\n";
-                $contenido .= "            \$actualizaciones[] = \"`{$campo['Field']}` = ?\";\n";
-                $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
-                if (strpos($campo['Type'], 'int') !== false) {
-                    $contenido .= "            \$tipos .= 'i';\n";
-                } elseif (strpos($campo['Type'], 'float') !== false || 
-                         strpos($campo['Type'], 'double') !== false || 
-                         strpos($campo['Type'], 'decimal') !== false) {
-                    $contenido .= "            \$tipos .= 'd';\n";
-                } elseif (strpos($campo['Type'], 'date') !== false || strpos($campo['Type'], 'datetime') !== false) {
-                    $contenido .= "            // Formatear fecha\n";
-                    $contenido .= "            \$params[] = date('Y-m-d', strtotime(\$datos['{$campo['Field']}']));\n";
-                    $contenido .= "            \$tipos .= 's';\n"; // Asumimos que se envía como string
-                } else {
-                    $contenido .= "            \$tipos .= 's';\n";
-                }
-                
-                $contenido .= "        }\n";
-
-            } else { // para campos No requeridos
-                $contenido .= "        if (!empty(\$datos['{$campo['Field']}'])) {\n";
-                $contenido .= "            if (isset(\$datos['{$campo['Field']}'])) {\n";
-                $contenido .= "            \$actualizaciones[] = \"`{$campo['Field']}` = ?\";\n";
-                $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
-                if (strpos($campo['Type'], 'int') !== false) {
-                    $contenido .= "            \$tipos .= 'i';\n";
-                } elseif (strpos($campo['Type'], 'float') !== false || 
-                         strpos($campo['Type'], 'double') !== false || 
-                         strpos($campo['Type'], 'decimal') !== false) {
-                             $contenido .= "            \$tipos .= 'd';\n";
-                } elseif (strpos($campo['Type'], 'date') !== false || strpos($campo['Type'], 'datetime') !== false) {
-                    $contenido .= "            // Formatear fecha\n";
-                    $contenido .= "            \$params[] = date('Y-m-d', strtotime(\$datos['{$campo['Field']}']));\n";
-                    $contenido .= "            \$tipos .= 's';\n"; // Asumimos que se envía como string
-                } else {
-                    $contenido .= "            \$tipos .= 's';\n";
-                }
-
+    // Métodos de modificación (solo si no es vista)
+    if (!$es_vista) {
+        // Obtener un registro por llave primaria
+        $contenido .= "    public function obtenerPorId(\$id) {\n";
+        $contenido .= "        \$query = \"SELECT * FROM $tabla WHERE \$this->llavePrimaria = ?\";\n";
+        $contenido .= "        \$stmt = \$this->conexion->prepare(\$query);\n";
+        $contenido .= "        \$stmt->bind_param('$tipoPrimaria', \$id);\n";
+        $contenido .= "        \$stmt->execute();\n";
+        $contenido .= "        \$resultado = \$stmt->get_result();\n";
+        $contenido .= "        return \$resultado ? \$resultado->fetch_assoc() : false;\n";
+        $contenido .= "    }\n\n";
+        // Crear un nuevo registro
+        $contenido .= "    public function crear(\$datos) {\n";
+        $contenido .= "        \$campos = [];\n";
+        $contenido .= "        \$valores = [];\n";
+        $contenido .= "        \$tipos = '';\n";
+        $contenido .= "        \$params = [];\n\n";
+        foreach ($campos as $campo) { 
+            if ($campo['Field'] != $llavePrimaria && !in_array($campo['Field'], $camposAutoIncrement) && !in_array($campo['Field'], $camposCURRENT) ) {  // Excluimos la llave primaria, auto_increment y CURRENT_TIMESTAMP
+                if (in_array($campo['Field'], $camposRequeridos)) { // Solo requeridos
+                    $contenido .= "        if (empty(\$datos['{$campo['Field']}'])) {\n";
+                    $contenido .= "            throw new Exception('El campo {$campo['Field']} es requerido.');\n";
+                    $contenido .= "        } elseif (isset(\$datos['{$campo['Field']}'])) {\n";
+                    $contenido .= "            \$campos[] = '`{$campo['Field']}`';\n";
+                    $contenido .= "            \$valores[] = '?';\n";
+                    $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
+                    // Determinar el tipo de dato para bind_param
+                    if (strpos($campo['Type'], 'int') !== false) {
+                        $contenido .= "            \$tipos .= 'i';\n";
+                    } elseif (strpos($campo['Type'], 'float') !== false || 
+                            strpos($campo['Type'], 'double') !== false || 
+                            strpos($campo['Type'], 'decimal') !== false) {
+                        $contenido .= "            \$tipos .= 'd';\n";
+                    } elseif (strpos($campo['Type'], 'date') !== false || strpos($campo['Type'], 'datetime') !== false) {
+                        $contenido .= "            // Formatear fecha\n";
+                        $contenido .= "            \$params[] = date('Y-m-d', strtotime(\$datos['{$campo['Field']}']));\n";
+                        $contenido .= "            \$tipos .= 's';\n"; // Asumimos que se envía como string
+                    } else {
+                        $contenido .= "            \$tipos .= 's';\n";
+                    }
+                    
                     $contenido .= "        }\n";
-                $contenido .= "        }\n";
+                } else {
+                    $contenido .= "        if (!empty(\$datos['{$campo['Field']}'])) {\n";
+                    $contenido .= "          if (isset(\$datos['{$campo['Field']}'])) {\n";
+                    $contenido .= "            \$campos[] = '`{$campo['Field']}`';\n";
+                    $contenido .= "            \$valores[] = '?';\n";
+                    $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
+                    // Determinar el tipo de dato para bind_param
+                    if (strpos($campo['Type'], 'int') !== false) {
+                        $contenido .= "            \$tipos .= 'i';\n";
+                    } elseif (strpos($campo['Type'], 'float') !== false || 
+                            strpos($campo['Type'], 'double') !== false || 
+                            strpos($campo['Type'], 'decimal') !== false) {
+                        $contenido .= "            \$tipos .= 'd';\n";
+                    } elseif (strpos($campo['Type'], 'date') !== false || strpos($campo['Type'], 'datetime') !== false) {
+                        $contenido .= "            // Formatear fecha\n";
+                        $contenido .= "            \$params[] = date('Y-m-d', strtotime(\$datos['{$campo['Field']}']));\n";
+                        $contenido .= "            \$tipos .= 's';\n"; // Asumimos que se envía como string
+                    } else {
+                        $contenido .= "            \$tipos .= 's';\n";
+                    }
+                    
+                    $contenido .= "           }\n";
+                    $contenido .= "        }\n";    
+                }   
+            
             }
         }
-    }
-    $contenido .= "\n        \$params[] = \$id;\n";
-    $contenido .= "        \$tipos .= \$tipos_pk;\n";
-    $contenido .= "        \$query = \"UPDATE $tabla SET \" . implode(', ', \$actualizaciones) . \" WHERE \$this->llavePrimaria = ?\";\n";
-    $contenido .= "        \$stmt = \$this->conexion->prepare(\$query);\n";
-    $contenido .= "        if (!empty(\$params)) {\n";
-    $contenido .= "            \$stmt->bind_param(\$tipos, ...\$params);\n";
-    $contenido .= "        }\n";
-    $contenido .= "        return \$stmt->execute();\n";
-    $contenido .= "    }\n\n";
-    
-    // Eliminar un registro
-    $contenido .= "    public function eliminar(\$id) {\n";
-    $contenido .= "        \$query = \"DELETE FROM $tabla WHERE \$this->llavePrimaria = ?\";\n";
-    $contenido .= "        \$stmt = \$this->conexion->prepare(\$query);\n";
-    $contenido .= "        \$stmt->bind_param('$tipoPrimaria', \$id);\n";
-    $contenido .= "        return \$stmt->execute();\n";
-    $contenido .= "    }\n";
-    
+        $contenido .= "\n        \$query = \"INSERT INTO $tabla (\" . implode(', ', \$campos) . \") VALUES (\" . implode(', ', \$valores) . \")\";\n";
+        $contenido .= "        \$stmt = \$this->conexion->prepare(\$query);\n";
+        $contenido .= "        if (!empty(\$params)) {\n";
+        $contenido .= "            \$stmt->bind_param(\$tipos, ...\$params);\n";
+        $contenido .= "        }\n";
+        $contenido .= "        return \$stmt->execute();\n";
+        $contenido .= "    }\n\n";
+        
+        // Actualizar un registro
+        $contenido .= "    public function actualizar(\$id, \$datos) {\n";
+        $contenido .= "        error_log(print_r(\$datos, true)); // Verificar los datos recibidos\n";
+        $contenido .= "        \$actualizaciones = [];\n";
+        $contenido .= "        \$tipos = '';\n";
+        $contenido .= "        \$tipos_pk = '$tipoPrimaria'; // Para la llave primaria\n";
+        $contenido .= "        \$params = [];\n\n";
+        foreach ($campos as $campo) {
+            if ($campo['Field'] != $llavePrimaria && !in_array($campo['Field'], $camposAutoIncrement) && !in_array($campo['Field'], $camposCURRENT) ) {  // Excluimos la llave primaria, auto_increment y CURRENT_TIMESTAMP
+                if (in_array($campo['Field'], $camposRequeridos)) { // Solo requeridos
+                    $contenido .= "        if (empty(\$datos['{$campo['Field']}'])) {\n";
+                    $contenido .= "            throw new Exception('El campo {$campo['Field']} es requerido.');\n";
+                    $contenido .= "        } elseif (isset(\$datos['{$campo['Field']}'])) {\n";
+                    $contenido .= "            \$actualizaciones[] = \"`{$campo['Field']}` = ?\";\n";
+                    $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
+                    if (strpos($campo['Type'], 'int') !== false) {
+                        $contenido .= "            \$tipos .= 'i';\n";
+                    } elseif (strpos($campo['Type'], 'float') !== false || 
+                            strpos($campo['Type'], 'double') !== false || 
+                            strpos($campo['Type'], 'decimal') !== false) {
+                        $contenido .= "            \$tipos .= 'd';\n";
+                    } elseif (strpos($campo['Type'], 'date') !== false || strpos($campo['Type'], 'datetime') !== false) {
+                        $contenido .= "            // Formatear fecha\n";
+                        $contenido .= "            \$params[] = date('Y-m-d', strtotime(\$datos['{$campo['Field']}']));\n";
+                        $contenido .= "            \$tipos .= 's';\n"; // Asumimos que se envía como string
+                    } else {
+                        $contenido .= "            \$tipos .= 's';\n";
+                    }
+                    
+                    $contenido .= "        }\n";
+
+                } else { // para campos No requeridos
+                    $contenido .= "        if (!empty(\$datos['{$campo['Field']}'])) {\n";
+                    $contenido .= "            if (isset(\$datos['{$campo['Field']}'])) {\n";
+                    $contenido .= "            \$actualizaciones[] = \"`{$campo['Field']}` = ?\";\n";
+                    $contenido .= "            \$params[] = \$datos['{$campo['Field']}'];\n";
+                    if (strpos($campo['Type'], 'int') !== false) {
+                        $contenido .= "            \$tipos .= 'i';\n";
+                    } elseif (strpos($campo['Type'], 'float') !== false || 
+                            strpos($campo['Type'], 'double') !== false || 
+                            strpos($campo['Type'], 'decimal') !== false) {
+                                $contenido .= "            \$tipos .= 'd';\n";
+                    } elseif (strpos($campo['Type'], 'date') !== false || strpos($campo['Type'], 'datetime') !== false) {
+                        $contenido .= "            // Formatear fecha\n";
+                        $contenido .= "            \$params[] = date('Y-m-d', strtotime(\$datos['{$campo['Field']}']));\n";
+                        $contenido .= "            \$tipos .= 's';\n"; // Asumimos que se envía como string
+                    } else {
+                        $contenido .= "            \$tipos .= 's';\n";
+                    }
+
+                        $contenido .= "        }\n";
+                    $contenido .= "        }\n";
+                }
+            }
+        }
+        $contenido .= "\n        \$params[] = \$id;\n";
+        $contenido .= "        \$tipos .= \$tipos_pk;\n";
+        $contenido .= "        \$query = \"UPDATE $tabla SET \" . implode(', ', \$actualizaciones) . \" WHERE \$this->llavePrimaria = ?\";\n";
+        $contenido .= "        \$stmt = \$this->conexion->prepare(\$query);\n";
+        $contenido .= "        if (!empty(\$params)) {\n";
+        $contenido .= "            \$stmt->bind_param(\$tipos, ...\$params);\n";
+        $contenido .= "        }\n";
+        $contenido .= "        return \$stmt->execute();\n";
+        $contenido .= "    }\n\n";
+        
+        // Eliminar un registro
+        $contenido .= "    public function eliminar(\$id) {\n";
+        $contenido .= "        \$query = \"DELETE FROM $tabla WHERE \$this->llavePrimaria = ?\";\n";
+        $contenido .= "        \$stmt = \$this->conexion->prepare(\$query);\n";
+        $contenido .= "        \$stmt->bind_param('$tipoPrimaria', \$id);\n";
+        $contenido .= "        return \$stmt->execute();\n";
+        $contenido .= "    }\n";
+    } // CIERRA SI NO ES VISTA GENERA métodos de crear, actualizar y eliminar  
     // Función de búsqueda
     $contenido .= "    public function buscar(\$termino, \$registrosPorPagina, \$offset) {\n";
     $contenido .= "        \$query = \"SELECT * FROM $tabla WHERE \";\n";

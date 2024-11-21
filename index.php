@@ -267,9 +267,13 @@ if (isset($_POST['mostrar_tablas']) || isset($_POST['base_datos'])) {
             
         // Función para generar el CRUD
         function generarCRUD() {
-            var tablasSeleccionadas = $('input[name="tabla[]"]:checked').map(function() {
-                return this.value;
-            }).get();
+            var tablasSeleccionadas = [];
+            var tiposTabla = [];
+            
+            $('input[name="tabla[]"]:checked').each(function() {
+                tablasSeleccionadas.push(this.value);
+                tiposTabla.push($(this).closest('tr').find('td:eq(2)').text()); // Obtiene el TABLE_TYPE de la tercera columna
+            });
 
             if (tablasSeleccionadas.length === 0) {
                 alert('Por favor, seleccione al menos una tabla.');
@@ -278,12 +282,13 @@ if (isset($_POST['mostrar_tablas']) || isset($_POST['base_datos'])) {
 
             var formData = {
                 tabla: tablasSeleccionadas,
+                tipo_tabla: tiposTabla,
                 base_datos: $('#base_datos').val(),
                 ruta: $('#ruta').val(),
                 nombre_archivo: $('#nombre_archivo').val()
             };
 
-            console.log(formData); // Agrega esta línea para depurar
+            console.log(formData); // Para depuración
 
             $.ajax({
                 type: 'POST',
@@ -291,20 +296,21 @@ if (isset($_POST['mostrar_tablas']) || isset($_POST['base_datos'])) {
                 data: formData,
                 dataType: 'json',
                 success: function(response) {
-                    // Limpiar el texto del mensaje antes de agregar nuevos mensajes
-                    $('#mensaje-text').empty();
-
-                    // Iterar sobre los mensajes y agregarlos al texto del mensaje
-                    response.messages.forEach(function(message) {
-                        $('#mensaje-text').append(message + '<br>'); // Agregar cada mensaje en una nueva línea
-                    });
-
-                    $('#mensaje').removeClass('alert-info').addClass(response.success ? 'alert-success' : 'alert-danger').show();
+                    if (response.success) {
+                        $('#mensaje-text').empty();
+                        response.messages.forEach(function(message) {
+                            $('#mensaje-text').append(message + '<br>');
+                        });
+                        $('#mensaje').removeClass('alert-danger').addClass('alert-success').show();
+                    } else {
+                        $('#mensaje-text').text(response.message);
+                        $('#mensaje').removeClass('alert-success').addClass('alert-danger').show();
+                    }
                 },
                 error: function(xhr, status, error) {
                     console.error("Error:", error); // Log del error en la consola
                     $('#mensaje-text').text('Error al procesar la solicitud: ' + error);
-                    $('#mensaje').removeClass('alert-info').addClass('alert-danger').show();
+                    $('#mensaje').removeClass('alert-success').addClass('alert-danger').show();
                 }
             });
         }
