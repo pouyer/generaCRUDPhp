@@ -5,19 +5,25 @@ usando MVC y visualizacion MODAL.
 cada tabla que crea su CRUD queda en la sigiente estructura:
 
 X:\XAMPP\HTDOCS\MIPROYECTO
+
 │   conexion.php
-│
+
 ├───controladores
-│       controlador_parametro_rangos_velocidad.php
-│
+
+        │ controlador_<nombre_tabla>.php
+
 ├───css
-│       estilos.css
-│
+
+        │ estilos.css
+
 ├───modelos
-│       modelo_parametro_rangos_velocidad.php
-│
+
+        │ modelo_<nombre_tabla>.php
+
 └───vistas
-        vista_parametro_rangos_velocidad.php
+
+       | vista_<nombre_tabla>.php
+        
 
 cada tabla queda con :
 1. paginacion
