@@ -22,7 +22,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (!str_ends_with(strtolower($nombre_archivo), '.php')) {
         $nombre_archivo .= '.php';
     }
-
+    //$ruta .= '/configuracion' ;
     // Limpiar y normalizar la ruta
     $ruta = str_replace('\\', DIRECTORY_SEPARATOR, $ruta);
     $ruta = str_replace('/', DIRECTORY_SEPARATOR, $ruta);
@@ -62,7 +62,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $contenido .= "    }\n\n";
         $contenido .= "    \$conexion->set_charset('utf8');\n";
         $contenido .= "    //Comentar esta linea una ves probada la conexion;\n";
-        $contenido .= "     echo 'Conexión exitosa';\n";
+        $contenido .= "    // echo 'Conexión exitosa';\n";
         $contenido .= "?>";
   
 

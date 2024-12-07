@@ -1,0 +1,24 @@
+.menu {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.menu li a {
+  width: 150px;
+  height: 45px;
+  line-height: 45px;
+  display: block;
+  border: 1px solid #CCCCCC;
+  color: #16036c;
+  margin-bottom: 10px;
+  text-decoration: none;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+}
+
+.menu li a:hover {
+  font-size: 24px;
+  color: #06020c;
+  background: #84bee0;
+}

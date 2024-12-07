@@ -74,6 +74,7 @@ function generar_crud_completo($tabla, $baseDatos, $ruta, $nombre_archivo, $tipo
         $dirVistas = $ruta . "/vistas";
         $dirControladores = $ruta . "/controladores";
         $dirCss = $ruta . "/css";
+        
 
         foreach ([$dirModelos, $dirVistas, $dirControladores, $dirCss] as $dir) {
             if (!file_exists($dir)) {
@@ -114,6 +115,23 @@ function generar_crud_completo($tabla, $baseDatos, $ruta, $nombre_archivo, $tipo
     }
 }
 
+function generar_incluye_iconos($directorio) {
+    $contenido = '    <!-- headIconos.php -->
+<!-- Incluir estilos de bootstrap -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+<!-- Incluir estilos de iconos -->
+    <link href="../iconos-web/css/iconos_web_fontello.css" rel="stylesheet" type="text/css">
+    <link href="../iconos-web/css/iconos_web_fontello-embedded.css" rel="stylesheet" type="text/css">
+    <link href="../iconos-web/css/animation.css" rel="stylesheet" type="text/css">
+    <link href="../iconos-web/css/iconos_web_fontello-codes.css" rel="stylesheet" type="text/css">
+
+    <link rel="stylesheet" href="../iconos-web/css/estiloIconos.css">
+
+<!-- Otros estilos o scripts que necesites -->';
+    $archivo = "$directorio/headIconos.php";
+    return file_put_contents($archivo, $contenido) !== false;
+}
+
 try {
     $resultados = [];
     foreach ($_POST['tabla'] as $key => $tabla) {
@@ -132,6 +150,19 @@ try {
             $resultados[] = $resultado;
         }
     }
+
+   // genera ruta de iconos que puede usar la aplicacion
+    $origenIconos = __DIR__ . "/../iconos-web"; // Cambiar la ruta para subir un nivel
+    $origenIconos = normalizar_ruta($origenIconos);
+    //error_log("Ruta de origen: $origenIconos"); // Imprimir ruta de origen
+    $ruta = $_POST['ruta'];
+    $destinoIconos =  $ruta . "/iconos-web";
+    $destinoIconos = normalizar_ruta($destinoIconos);
+    //error_log("Ruta de destino: $destinoIconos"); // Imprimir ruta de destino
+    copiarCarpeta($origenIconos, $destinoIconos);
+    generar_incluye_iconos($ruta);
+
+
 
     header('Content-Type: application/json');
     echo json_encode([

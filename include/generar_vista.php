@@ -2,6 +2,16 @@
 function generar_vista($tabla, $campos, $directorio, $es_vista) {
     $nombreClase = ucfirst($tabla);
     $contenido =  "<?php\n";
+    $contenido .= "/**
+ * GeneraCRUDphp
+ *
+ * es desarrollada para ajilizar el desarrollo de aplicaciones PHP
+ * permitir la administracion de tablas creando leer, actualizar, editar y elimar reguistros
+ * Desarrollado por Carlos Mejia
+ * 2024-12-06
+ * Version 0.3.0
+ * 
+ */\n";
     $contenido .= "    \$registrosPorPagina = isset(\$_GET['registrosPorPagina']) ? (int)\$_GET['registrosPorPagina'] : 10;\n";
     $contenido .= "    \$paginaActual = isset(\$_GET['pagina']) ? (int)\$_GET['pagina'] : 1;\n";
     $contenido .= "?>\n";
@@ -11,7 +21,8 @@ function generar_vista($tabla, $campos, $directorio, $es_vista) {
     $contenido .= "    <meta charset=\"UTF-8\">\n";
     $contenido .= "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
     $contenido .= "    <title>$nombreClase - " . ($es_vista ? "Vista" : "Tabla") . "</title>\n";
-    $contenido .= "    <link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css\">\n";
+
+    $contenido .= "    <?php include('../headIconos.php'); // Incluir los elementos del encabezado iconos?>\n";
     $contenido .= "    <link rel=\"stylesheet\" href=\"../css/estilos.css\">\n";
     $contenido .= "</head>\n";
     $contenido .= "<body>\n";
@@ -23,12 +34,12 @@ function generar_vista($tabla, $campos, $directorio, $es_vista) {
     
     // Solo mostrar botón de crear si no es una vista
     if (!$es_vista) {
-        $contenido .= "            <button class=\"btn btn-primary\" data-toggle=\"modal\" data-target=\"#modalCrear\">Crear</button>\n";
+        $contenido .= "            <button class=\"btn btn-primary icon-plus\" data-toggle=\"modal\" data-target=\"#modalCrear\">Crear</button>\n";
     } else {
         $contenido .= "            <div></div>\n"; // Espacio vacío para mantener el layout
     }
     $contenido .= "            <div class=\"btn-group\">\n";
-    $contenido .= "                <button class=\"btn btn-success dropdown-toggle\" type=\"button\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\">\n";
+    $contenido .= "                <button class=\"btn btn-success dropdown-toggle icon-export\" type=\"button\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\">\n";
     $contenido .= "                    Exportar\n";
     $contenido .= "                </button>\n";
     $contenido .= "                <div class=\"dropdown-menu\">\n";
@@ -47,9 +58,9 @@ function generar_vista($tabla, $campos, $directorio, $es_vista) {
     $contenido .= "                <input type=\"hidden\" name=\"registrosPorPagina\" value=\"<?= \$registrosPorPagina ?>\">\n";
     $contenido .= "                <input type=\"hidden\" name=\"pagina\" value=\"<?= \$paginaActual ?>\">\n";
     $contenido .= "                <div class=\"input-group-append\">\n";
-    $contenido .= "                    <button type=\"submit\" class=\"btn btn-secondary\">Buscar</button>\n";
+    $contenido .= "                    <button type=\"submit\" class=\"btn btn-secondary icon-search-outline\"> </button>\n";
     $contenido .= "                    <?php if(isset(\$_GET['busqueda']) && \$_GET['busqueda'] !== ''): ?>\n";
-    $contenido .= "                        <a href=\"../controladores/controlador_$tabla.php\" class=\"btn btn-outline-danger\">Limpiar</a>\n";
+    $contenido .= "                        <a href=\"../controladores/controlador_$tabla.php\" class=\"btn btn-outline-danger icon-eraser\"> </a>  <!-- Aqui boton limpiar si requiere nombre -->\n";
     $contenido .= "                    <?php endif; ?>\n";
     $contenido .= "                </div>\n";
     $contenido .= "            </div>\n";
@@ -100,14 +111,14 @@ function generar_vista($tabla, $campos, $directorio, $es_vista) {
     }
     $contenido .= "                    <td>\n";
     if (!$es_vista) {
-        $contenido .= "                        <button class=\"btn btn-warning\" data-toggle=\"modal\" data-target=\"#modalActualizar\" data-idActualizar=\"<?php echo \$registro['" . $campos[0]['Field'] . "']; ?>\"";
+        $contenido .= "                        <button class=\"btn btn-warning icon-edit\" data-toggle=\"modal\" data-target=\"#modalActualizar\" data-idActualizar=\"<?php echo \$registro['" . $campos[0]['Field'] . "']; ?>\"";
 
         // Agregar atributos data-* para cada campo que se desea cargar
         foreach ($campos as $campo) {
             $contenido .= "\n                           data-" . htmlspecialchars($campo['Field']) . "=\"<?php echo htmlspecialchars(\$registro['" . $campo['Field'] . "']); ?>\"";
         }
-        $contenido .= ">Actualizar</button>\n"; // Asegúrate de que 'nombre' sea un campo válido
-        $contenido .= "                        <button class=\"btn btn-danger\" onclick=\"eliminar('<?php echo htmlspecialchars(\$registro['" . $campos[0]['Field'] . "']); ?>')\">Eliminar</button>\n";
+        $contenido .= "> </button>  <!-- Boton Eliminar si requiere nombre aqui se pone -->\n"; // Boton Editar si requiere nombre aqui se pone
+        $contenido .= "                        <button class=\"btn btn-danger icon-trash-2\" onclick=\"eliminar('<?php echo htmlspecialchars(\$registro['" . $campos[0]['Field'] . "']); ?>')\"> </button>  <!-- Boton Eliminar si requiere nombre aqui se pone -->\n";
         $contenido .= "                    </td>\n";
     }
     $contenido .= "                </tr>\n";
@@ -160,7 +171,7 @@ $contenido .= "        </nav>\n";
 
     // Modal para crear
     $contenido .= "        <div class=\"modal fade\" id=\"modalCrear\" tabindex=\"-1\" role=\"dialog\">\n";
-    $contenido .= "            <div class=\"modal-dialog\" role=\"document\">\n";
+    $contenido .= "            <div class=\"modal-dialog modal-lg\" role=\"document\">\n";
     $contenido .= "                <div class=\"modal-content\">\n";
     $contenido .= "                    <div class=\"modal-header\">\n";
     $contenido .= "                        <h5 class=\"modal-title\">Crear $nombreClase</h5>\n";
@@ -172,23 +183,48 @@ $contenido .= "        </nav>\n";
     $contenido .= "                        <form id=\"formCrear\">\n";
 
     // Campos del formulario de creación
-    foreach ($campos as $campo) {
-        
-        if ($campo['Extra'] != 'auto_increment' && $campo['Extra'] != 'on update current_timestamp()'  && $campo['Key'] != 'PRI' && $campo['Default'] != 'current_timestamp()' ) { // Excluimos la llave primaria, campos auto_increment y CURRENT_TIMESTAMP
-            $contenido .= "                            <div class=\"form-group\">\n";
-            $contenido .= "                                <label for=\"{$campo['Field']}\">" . htmlspecialchars($campo['Field']) . ":</label>\n";
-            if (strpos($campo['Type'], 'date') !== false || strpos($campo['Type'], 'datetime') !== false) {
-                $contenido .= "                                <input type=\"date\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\"" . ($campo['Null'] == 'NO' ? ' required' : '') . ">\n";
-            } elseif (strpos($campo['Type'], 'int') !== false || strpos($campo['Type'], 'float') !== false) {
-                $contenido .= "                                <input type=\"number\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\"" . ($campo['Null'] == 'NO' ? ' required' : '') . ">\n";
-            } else {
-                $contenido .= "                                <input type=\"text\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\"" . ($campo['Null'] == 'NO' ? ' required' : '') . ">\n";
-            }
-            $contenido .= "                            </div>\n";
+    // Inicializar el contador
+    $contador = 0;
+
+    // Filtrar los campos válidos
+    $camposValidos = array_filter($campos, function($campo) {
+        return !($campo['Extra'] == 'auto_increment' || 
+                 $campo['Extra'] == 'on update current_timestamp()' || 
+                 $campo['Key'] == 'PRI' || 
+                 $campo['Default'] == 'current_timestamp()');
+    });
+   
+    // Mostrar contenido del array $camposValidos en log de php
+    //error_log(print_r($camposValidos, true));
+
+    // Iterar sobre los campos válidos
+    foreach ($camposValidos as $index => $campo) {
+        // Incrementar el contador por cada campo válido
+        $contador++;
+
+        // Aquí puedes usar el contador para determinar si debes crear una nueva fila
+        if ($contador % 2 == 1) {    
+            $contenido .= "                            <div class=\"form-row\">\n"; // Abrir nueva fila
+        }
+
+        $contenido .= "                                <div class=\"form-group col-md-6\">\n"; // Cambiado a col-md-6
+        $contenido .= "                                    <label for=\"{$campo['Field']}\">" . htmlspecialchars($campo['Field']) . ":</label>\n";
+        if (strpos($campo['Type'], 'date') !== false || strpos($campo['Type'], 'datetime') !== false) {
+            $contenido .= "                                     <input type=\"date\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\"" . ($campo['Null'] == 'NO' ? ' required' : '') . ">\n";
+        } elseif (strpos($campo['Type'], 'int') !== false || strpos($campo['Type'], 'float') !== false) {
+            $contenido .= "                                     <input type=\"number\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\"" . ($campo['Null'] == 'NO' ? ' required' : '') . ">\n";
+        } else {
+            $contenido .= "                                     <input type=\"text\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\"" . ($campo['Null'] == 'NO' ? ' required' : '') . ">\n";
+        }
+        $contenido .= "                                </div>\n";
+
+        // Cerrar la fila después de dos campos o si es el último
+        if ($index % 2 == 0 || $index == count($camposValidos)) { 
+            $contenido .= "                            </div>\n"; // Cerrar fila
         }
     }
 
-    $contenido .= "                            <button type=\"submit\" class=\"btn btn-primary\">Crear</button>\n";
+    $contenido .= "                            <button type=\"submit\" class=\"btn btn-primary icon-ok-2\">Crear</button>\n";
     $contenido .= "                        </form>\n";
     $contenido .= "                    </div>\n";
     $contenido .= "                </div>\n";
@@ -197,47 +233,66 @@ $contenido .= "        </nav>\n";
 
     // Modal para actualizar
     $contenido .= "        <div class=\"modal fade\" id=\"modalActualizar\" tabindex=\"-1\" role=\"dialog\">\n";
-    $contenido .= "            <div class=\"modal-dialog\" role=\"document\">\n";
+    $contenido .= "            <div class=\"modal-dialog modal-lg\" role=\"document\">\n";
     $contenido .= "                <div class=\"modal-content\">\n";
-    $contenido .= "                    <div class=\"modal-header\">\n";
-    $contenido .= "                        <h5 class=\"modal-title\">Actualizar $nombreClase</h5>\n";
-    $contenido .= "                        <button type=\"button\" class=\"close\" data-dismiss=\"modal\" aria-label=\"Close\">\n";
-    $contenido .= "                            <span aria-hidden=\"true\">&times;</span>\n";
-    $contenido .= "                        </button>\n";
-    $contenido .= "                    </div>\n";
-    $contenido .= "                    <div class=\"modal-body\">\n";
-    $contenido .= "                        <form id=\"formActualizar\">\n";
 
+    $contenido .= "                <div class=\"modal-body\">\n";
+    $contenido .= "                    <form id=\"formActualizar\">\n";
     // Campos del formulario de actualización
-    foreach ($campos as $campo) {
-        if ($campo['Default'] != 'current_timestamp()' && $campo['Extra'] != 'on update current_timestamp()') { // Excluimos CURRENT_TIMESTAMP
-            $contenido .= "                            <div class=\"form-group\">\n";
-            $contenido .= "                                <label for=\"{$campo['Field']}\">" . htmlspecialchars($campo['Field']) . ":</label>\n";
-            
-            // Si es la llave primaria, mostrar como solo lectura
-            if ($campo['Key'] == 'PRI') {
-                $contenido .= "                                <input type=\"text\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\" value=\"<?php echo htmlspecialchars(\$registro['{$campo['Field']}']); ?>\" readonly>\n";
-            } else 
-                {
-                if (strpos($campo['Type'], 'date') !== false || strpos($campo['Type'], 'datetime') !== false) {
-                    $contenido .= "                                <input type=\"date\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\"" . ($campo['Null'] == 'NO' ? ' required' : '') . ">\n";
-                } elseif (strpos($campo['Type'], 'int') !== false || strpos($campo['Type'], 'float') !== false) {
-                    $contenido .= "                                <input type=\"number\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\"" . ($campo['Null'] == 'NO' ? ' required' : '') . ">\n";
-                } else {
-                    $contenido .= "                                <input type=\"text\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\"" . ($campo['Null'] == 'NO' ? ' required' : '') . ">\n";
+
+    $contador= 0;
+    foreach ($campos as $index => $campo) {
+        if ($campo['Key'] == 'PRI') {
+            $contenido .= "                     <div class=\"modal-header\">\n";
+            $contenido .= "                         <div class=\"form-row\">\n";
+            $contenido .= "                             <div class=\"form-group col-md-8\">\n";
+            $contenido .= "                               <h5 class=\"modal-title\">Actualizar $nombreClase - ID: </h5>\n";
+            $contenido .= "                             </div>\n";
+            $contenido .= "                             <div class=\"form-group col-md-3\">\n";
+            $contenido .= "                                <div class=\"form-group mb-0 d-flex align-items-center\">\n";
+            $contenido .= "                                    <input type=\"text\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\" value=\"<?php echo htmlspecialchars(\$registro['{$campo['Field']}']); ?>\" readonly>\n";
+            $contenido .= "                                </div>\n";  
+            $contenido .= "                             </div>\n";  
+            $contenido .= "                         </div>\n"; 
+            $contenido .= "                         <button type=\"button\" class=\"close\" data-dismiss=\"modal\" aria-label=\"Close\">\n";
+            $contenido .= "                            <span aria-hidden=\"true\">&times;</span>\n";
+            $contenido .= "                         </button>\n";
+            $contenido .= "                     </div>\n";
+        }  else {
+            if ($campo['Default'] != 'current_timestamp()' && $campo['Extra'] != 'on update current_timestamp()') { // Excluimos CURRENT_TIMESTAMP
+                $contador++;
+                if ($contador % 2 == 1) { // Cada dos campos en una fila
+                    $contenido .= "                            <div class=\"form-row\">\n";
                 }
-            $contenido .= "                            </div>\n";
+                $contenido .= "                                 <div class=\"form-group col-md-6\">\n"; // Cambiado a col-md-6
+                $contenido .= "                                     <label for=\"{$campo['Field']}\">" . htmlspecialchars($campo['Field']) . ":</label>\n";
+                if (strpos($campo['Type'], 'date') !== false || strpos($campo['Type'], 'datetime') !== false) {
+                    $contenido .= "                                     <input type=\"date\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\"" . ($campo['Null'] == 'NO' ? ' required' : '') . ">\n";
+                } elseif (strpos($campo['Type'], 'int') !== false || strpos($campo['Type'], 'float') !== false) {
+                    $contenido .= "                                     <input type=\"number\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\"" . ($campo['Null'] == 'NO' ? ' required' : '') . ">\n";
+                } else {
+                    $contenido .= "                                     <input type=\"text\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\"" . ($campo['Null'] == 'NO' ? ' required' : '') . ">\n";
+                }
+            $contenido .= "                                </div>\n"; // cierre la class a col-md-6
+          
+            if ($contador % 2 == 0 && $index != count($camposValidos)) { // Cerrar la fila después de dos campos o si es el último
+                $contenido .= "                            </div>  <!-- Par no fin de registros  -->\n";
+            }    
+            if (  $index == count($camposValidos)) { // Cerrar la fila después de dos campos o si es el último    
+                $contenido .= "                            </div> <!--  fin de registros  --> \n";
+            }
+
             }
         }
-    }
-
-    $contenido .= "                            <input type=\"hidden\" id=\"idActualizar\" name=\"idActualizar\">\n";
-    $contenido .= "                            <button type=\"submit\" class=\"btn btn-warning\">Actualizar</button>\n";
-    $contenido .= "                        </form>\n";
-    $contenido .= "                    </div>\n";
-    $contenido .= "                </div>\n";
-    $contenido .= "            </div>\n";
-    $contenido .= "        </div>\n";
+    } // cierra el foreach
+   // $contenido .= "                            </div>  <!-- Adicional  -->\n";
+    $contenido .= "                                 <input type=\"hidden\" id=\"idActualizar\" name=\"idActualizar\">\n";
+    $contenido .= "                                 <button type=\"submit\" class=\"btn btn-warning icon-ok-2\">Actualizar</button>\n";
+    $contenido .= "                    </form>\n";
+    $contenido .= "                 </div>\n";
+    $contenido .= "             </div>\n";
+    $contenido .= "         </div>\n";
+    $contenido .= "     </div>\n";
 
     $contenido .= "    <script src=\"https://code.jquery.com/jquery-3.6.0.min.js\"></script>\n";
     $contenido .= "    <script src=\"https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js\"></script>\n";
@@ -308,7 +363,7 @@ $contenido .= "        </nav>\n";
 
     // Cargar cada campo en el modal
     foreach ($campos as $campo) {
-        $contenido .= "                modal.find('#{$campo['Field']}').val(button.data('{$campo['Field']}'));\n";
+        $contenido .= "                 modal.find('#{$campo['Field']}').val(button.data('{$campo['Field']}'));\n";
     }
 
     $contenido .= "                });\n";

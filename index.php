@@ -18,6 +18,7 @@ if (isset($_POST['nombre_archivo'])) {
     $_SESSION['nombre_archivo'] = $_POST['nombre_archivo'];
 }
 
+
 // Recuperar valores de la sesión
 $ruta = isset($_SESSION['ruta']) ? $_SESSION['ruta'] : '';
 $nombre_archivo = isset($_SESSION['nombre_archivo']) ? $_SESSION['nombre_archivo'] : '';
@@ -56,12 +57,12 @@ if (isset($_POST['generar_crud'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generador de CRUD</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    
+    <?php include('headIconos.php'); // Incluir los elementos del encabezado iconos?>
 </head>
 <body>
     <div class="container">
-        <h1 class="text-center">Generador de CRUD</h1>
-        
+        <h1 class="text-center">Generador de CRUD</h1>       
         <div id="mensaje" class="alert alert-info alert-dismissible fade show" role="alert" style="display: none;">
             <span id="mensaje-text"></span>
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -100,7 +101,7 @@ if (isset($_POST['generar_crud'])) {
                 <label for="ruta">Ruta del Proyecto:</label>
                 <div class="input-group">
                     <div class="input-group-append">
-                        <button type="button" class="btn btn-secondary" onclick="abrirExploradorCarpetas()">
+                        <button type="button" class="btn btn-secondary icon-folder" onclick="abrirExploradorCarpetas()">
                             Seleccionar Carpeta
                         </button>
                     </div>
@@ -126,13 +127,18 @@ if (isset($_POST['generar_crud'])) {
 
             <div class="btn-group" role="group">
                 <!-- Botón para generar archivo de conexión -->
-                <button type="button" class="btn btn-secondary" onclick="generarConexion()">
+            
+                <button type="button" class="btn btn-secondary icon-link-2" onclick="generarConexion()">
                     Generar Archivo de Conexión
                 </button>
                 <div style="margin-top: 10px;"></div>
                 <!-- Botón para mostrar tablas -->
-                <button type="submit" name="mostrar_tablas" class="btn btn-primary">
+                <button type="submit" name="mostrar_tablas" class="btn btn-primary icon-table">
                     Mostrar Tablas
+                </button>
+                <!-- Nuevo botón para módulo de acceso -->
+                <button type="button" class="btn btn-success icon-expeditedssl" onclick="generarModuloAcceso()">
+                    Generar Módulo de Acceso
                 </button>
             </div>
         </form>
@@ -323,6 +329,32 @@ if (isset($_POST['mostrar_tablas']) || isset($_POST['base_datos'])) {
                 });
             });
         });
+
+        // Nueva función para generar el módulo de acceso
+        function generarModuloAcceso() {
+            var ruta = $('#ruta').val();
+            var nombre_archivo = $('#nombre_archivo').val();
+            var base_datos = $('#base_datos').val();
+
+            console.log("Ruta:", ruta);
+            console.log("Nombre de archivo:", nombre_archivo);
+            console.log("Base de datos:", base_datos);
+
+            // Verificar que la ruta, el archivo y la base de datos no estén vacíos
+            if (!ruta || !nombre_archivo || !base_datos) {
+                alert('Por favor, ingrese la ruta del proyecto, el nombre del archivo de conexión y seleccione una base de datos.');
+                return;
+            }
+
+            // Actualizar la sesión y redirigir
+            $.post('include/actualizar_sesion.php', {
+                ruta: ruta,
+                nombre_archivo: nombre_archivo,
+                base_datos: base_datos
+            }, function() {
+                window.location.href = 'modulo_acceso.php';
+            });
+        }
     </script>
 </body>
 </html>

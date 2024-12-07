@@ -34,4 +34,71 @@ function validar_ruta($ruta) {
     }
     return true;
 }
+
+// Función para copiar carpetas recursivamente
+function copiarCarpeta($origen, $destino) {
+    if (!is_dir($destino)) {
+        mkdir($destino, 0777, true);
+    }
+    $archivos = scandir($origen);
+    foreach ($archivos as $archivo) {  
+        if ($archivo != '.' && $archivo != '..') {
+            $rutaOrigen = "$origen/$archivo";
+            $rutaDestino = "$destino/$archivo";
+            if (is_dir($rutaOrigen)) {
+                copiarCarpeta($rutaOrigen, $rutaDestino);
+            } else {
+                copy($rutaOrigen, $rutaDestino);
+            }
+        }
+    }
+}
+
+// Función para copiar un archivo a una carpeta de destino
+function copiarArchivo($origen, $destino) {
+    // Verificar si el archivo de origen existe
+    if (!file_exists($origen)) {
+        return "El archivo no existe: $origen";
+    }
+    // Crear el directorio de destino si no existe
+    $directorioDestino = dirname($destino);
+    if (!is_dir($directorioDestino)) {
+        mkdir($directorioDestino, 0777, true);
+    }
+    // Copiar el archivo
+    if (copy($origen, $destino)) {
+        return true;
+    } else {
+        return "Error al copiar el archivo: $origen a $destino";
+    }
+}
+
+// Función para reemplazar una cadena en un archivo
+function reemplazarEnArchivo($archivo, $cadena_a_busca, $palabra_reemplazo) {
+    // Verificar si el archivo existe
+    if (!file_exists($archivo)) {
+        return "El archivo no existe: $archivo";
+    }
+    // Leer el contenido del archivo
+    $contenido = file_get_contents($archivo);
+    // Reemplazar la cadena
+    $nuevoContenido = str_replace($cadena_a_busca, $palabra_reemplazo, $contenido);
+    // Escribir el nuevo contenido en el archivo
+    file_put_contents($archivo, $nuevoContenido);
+    
+    return true;
+}
+
+// Función para listar archivos en un directorio que coincidan con un patrón
+function listarArchivos($directorio, $patron) {
+    // Verificar si el directorio existe
+    if (!is_dir($directorio)) {
+        return "El directorio no existe: $directorio";
+    }  
+    // Obtener todos los archivos que coinciden con el patrón
+    $archivos = glob("$directorio/$patron");
+    
+    return $archivos;
+}
+
 ?>

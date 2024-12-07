@@ -1,0 +1,6 @@
+   body {
+       font-size: 0.9rem; /* Ajustar el tamaño de fuente general */
+   }
+   .table th, .table td {
+       font-size: 0.85rem; /* Ajustar el tamaño de fuente de la tabla */
+   }
