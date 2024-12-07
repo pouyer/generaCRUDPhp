@@ -4,23 +4,13 @@
     // Configuración de la conexión
    
  
-  /*
+  
    $servidor = 'localhost';
    $usuario = 'root';
    $password = '';
    $puerto = 3306;
-*/
 
-   $servidor = 'srv691.hstgr.io';
-   $usuario = 'u420920295_QuickBite';
-   $password = 'QuickBite1';
-   $puerto = 3306;
-
-/*	$servidor = 'serverltda.com';
-    $usuario = 'remoto';
-    $password = 'C@rlos123';
-    $puerto = 17032; // Cambia este valor al puerto que necesites
-*/	
+	
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $dbname = $_POST['base_datos'];
         $conexion = new mysqli($servidor, $usuario, $password, $dbname, $puerto);
