@@ -1,32 +1,66 @@
-.menu-fondo {
-   /* width: 100%; /* establece un ancho del 50% del contenedor padre */
-   /* height: 100%; /* establece un alto del 50% del contenedor padre */
-  /*  max-width: 300px; /* establece un ancho máximo de 300px */
-  /*  max-height: 400px; /* establece un alto máximo de 400px */
-    background-color: #a5cae7; /* color de fondo */
-    padding: 5px; /* espacio entre el contenido y el borde */
-    border: 1px solid #444; /* borde */
-    border-radius: 5px; /* esquinas redondas */
-    color: #13023b; /* color de texto */
-    font-size: 16px; /* tamaño de fuente */
-  }
-/* Style for the nested navigation when it's shown */
-  .nested-nav.show {
-   /* background-color: #f5f5f5; /* color de fondo */
-    color: #333; /* color de texto */
-  }
+:root {
+    --color-fondo-menu: #a5cae7; /* Color de fondo del menú */
+    --color-texto-menu: #13023b; /* Color de texto del menú */
+    --color-texto-activo: #FFFFFF; /* Color de texto activo */
+    --color-fondo-activo: #007bff; /* Color de fondo activo */
+    --color-texto-enlace: #13023b; /* Color de texto de los enlaces */
+    --color-texto-enlace-hover: #FFFFFF; /* Color de texto al pasar el mouse */
+    --color-fondo-enlace-hover: #007bff; /* Color de fondo al pasar el mouse */
+    --color-fondo-submenu: #6aa2f6; /* Color de fondo del submenú cuando está activo */
+    --color-fondo-item: #e0f7fa; /* Color de fondo del item de la lista */
+    --color-fondo-item-activo: #6aa2f6; /* Color de fondo del item de la lista cuando está activo */
+}
 
-  /* Style for the nested navigation */
-  .nested-nav {
-    list-style-type: none;
-    padding-left: 20px;
-  }
-  .nested-nav li {
-    margin: 1px 0;
-  }
-  /* Style for the iframe */
-  iframe {
+.menu-fondo {
+    background-color: var(--color-fondo-menu); /* Usar la variable de color de fondo */
+    color: var(--color-texto-menu); /* Usar la variable de color de texto */
+}
+
+.menu-fondo a {
+    color: var(--color-texto-enlace); /* Color de texto de los enlaces */
+}
+
+.menu-fondo a:hover {
+    color: var(--color-texto-enlace-hover); /* Color de texto al pasar el mouse */
+    background-color: var(--color-fondo-enlace-hover); /* Color de fondo al pasar el mouse */
+}
+
+/* Estilos para el acordeón */
+.nested-nav {
+    display: none; /* Ocultar inicialmente los submenús */
+    background-color: var(--color-fondo-submenu); /* Color de fondo del submenú */
+}
+
+.active > .nested-nav {
+    display: block; /* Mostrar el submenú si el padre está activo */
+}
+
+.active > .nested-nav {
+    background-color: var(--color-fondo-submenu); /* Aplicar el color de fondo del submenú activo */
+}
+
+.list-group-item {
+    background-color: var(--color-fondo-item); /* Usar la variable de color de fondo para el item de la lista */
+}
+
+.list-group-item.active {
+    background-color: var(--color-fondo-item-activo); /* Usar la variable de color de fondo para el item de la lista activo */
+}
+
+.accordion-button {
+    cursor: pointer; /* Cambiar el cursor al pasar sobre el botón del acordeón */
+    color: var(--color-texto-menu); /* Color del texto del módulo por defecto */
+    background-color: transparent; /* Fondo transparente por defecto */
+}
+
+.active > .accordion-button {
+    color: var(--color-texto-activo); /* Cambia el color del texto al seleccionar */
+    background-color: var(--color-fondo-activo); /* Cambia el color de fondo al seleccionar */
+}
+
+/* Otros estilos */
+iframe {
     border: none;
-    width: 100%; /* Adjust width as needed */
+    width: 100%; /* Ajustar el ancho según sea necesario */
     height: 600px;
-  }
+}

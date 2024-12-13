@@ -10,7 +10,7 @@
    $password = '';
    $puerto = 3306;
 
-	
+
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $dbname = $_POST['base_datos'];
         $conexion = new mysqli($servidor, $usuario, $password, $dbname, $puerto);
