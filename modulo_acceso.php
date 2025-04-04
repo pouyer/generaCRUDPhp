@@ -7,10 +7,12 @@ require_once('include/funciones_utilidades.php');
 $ruta = isset($_SESSION['ruta']) ? $_SESSION['ruta'] : '';
 $baseDatos = isset($_SESSION['base_datos']) ? $_SESSION['base_datos'] : '';
 $nombrearchivo = isset($_SESSION['nombre_archivo']) ? $_SESSION['nombre_archivo'] : '';
+$nombreproyecto = isset($_SESSION['nombre_proyecto']) ? $_SESSION['nombre_proyecto'] : ''; // Recuperar nombre_proyecto
+
 $resultadoActualizacion = ''; // Variable para almacenar el resultado de la actualización
 
 // Mostrar la alerta si falta información
-if (empty($ruta) || empty($nombrearchivo) || empty($baseDatos)) {
+if (empty($ruta) || empty($nombrearchivo) || empty($baseDatos)) { // No validar nombre_proyecto como obligatorio
     echo "<script>alert('Faltan datos: Asegúrese de que la ruta del proyecto, el archivo de conexión y la base de datos estén configurados.');</script>";
 }
 
@@ -64,11 +66,12 @@ function ejecutar_script_sql($conexion, $archivo_sql) {
             <div class="col">
                 <h1 class="text-center">Módulo de Acceso</h1>
                 <a href="index.php" class="btn btn-secondary mb-4">← Volver</a>
-                <?php if (!empty($ruta) && !empty($_SESSION['nombre_archivo']) && !empty($baseDatos)): ?>
+                <?php if (!empty($ruta) && !empty($nombrearchivo) && !empty($baseDatos)): ?>
                     <div class="alert alert-info">
                         Ruta del proyecto: <?php echo htmlspecialchars($ruta); ?><br>
-                        Archivo de conexión: <?php echo htmlspecialchars($_SESSION['nombre_archivo']); ?><br>
-                        Base de datos seleccionada: <?php echo htmlspecialchars($baseDatos); ?>
+                        Archivo de conexión: <?php echo htmlspecialchars($nombrearchivo); ?><br>
+                        Base de datos seleccionada: <?php echo htmlspecialchars($baseDatos); ?><br>
+                        Nombre del proyecto: <?php echo htmlspecialchars($nombreproyecto); ?> <!-- Mostrar nombre_proyecto -->
                     </div>
                 <?php endif; ?>
                 <?php if ($resultadoActualizacion): ?>
@@ -106,7 +109,7 @@ function ejecutar_script_sql($conexion, $archivo_sql) {
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script> 
     <script>
         // Verificar si existe la ruta al cargar la página
         $(document).ready(function() {
@@ -148,6 +151,33 @@ function ejecutar_script_sql($conexion, $archivo_sql) {
         function crearMenuPrincipal() {
             $.ajax({
                 url: 'accesos/crea_menu_principal.php',
+                method: 'POST',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        let mensaje = response.message;
+                        alert('Éxito: ' + mensaje);
+                    } else {
+                        console.error("Error detallado:", response);
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error completo:", {
+                        status: status,
+                        error: error,
+                        response: xhr.responseText,
+                        xhr: xhr
+                    });
+                    alert('Error al procesar la solicitud. Revise la consola para más detalles.');
+                }
+            });
+        }
+
+        // Función para crear la pantalla de login  crearPantallaLogin()
+        function crearPantallaLogin() {
+            $.ajax({
+                url: 'accesos/crea_pantalla_login.php',
                 method: 'POST',
                 dataType: 'json',
                 success: function(response) {

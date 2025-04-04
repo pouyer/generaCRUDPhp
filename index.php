@@ -10,18 +10,23 @@ $baseDatos = '';
 $ruta = '';
 $nombre_archivo = '';
 
-// Capturar y guardar en sesión los valores de ruta y nombre_archivo cuando se ingresan
+// Capturar y guardar en sesión los valores de ruta, nombre_archivo y nombre_proyecto cuando se ingresan
 if (isset($_POST['ruta'])) {
     $_SESSION['ruta'] = $_POST['ruta'];
 }
 if (isset($_POST['nombre_archivo'])) {
     $_SESSION['nombre_archivo'] = $_POST['nombre_archivo'];
 }
-
+if (isset($_POST['nombre_proyecto'])) {
+    $_SESSION['nombre_proyecto'] = $_POST['nombre_proyecto'];
+} else {
+    $_SESSION['nombre_proyecto'] = ''; // Asegurar que exista en la sesión aunque esté vacío
+}
 
 // Recuperar valores de la sesión
 $ruta = isset($_SESSION['ruta']) ? $_SESSION['ruta'] : '';
 $nombre_archivo = isset($_SESSION['nombre_archivo']) ? $_SESSION['nombre_archivo'] : '';
+$nombre_proyecto = isset($_SESSION['nombre_proyecto']) ? $_SESSION['nombre_proyecto'] : ''; // Recuperar nombre_proyecto
 
 // Verificar si se ha enviado el formulario para generar el CRUD
 if (isset($_POST['generar_crud'])) {
@@ -97,6 +102,15 @@ if (isset($_POST['generar_crud'])) {
                     <input type="password" class="form-control" id="password" name="password" >
                 </div>
             </div>
+            <div class="row mt-3">
+                <div class="col-md-4">
+                    <label for="nombre_proyecto">Nombre Proyecto:</label>
+                    <input type="text" class="form-control" id="nombre_proyecto" name="nombre_proyecto" 
+                           value="<?php echo htmlspecialchars($nombre_proyecto); ?>"> <!-- Mostrar valor de sesión -->
+                </div>
+      
+            </div>
+
             <div class="form-group">
                 <label for="ruta">Ruta del Proyecto:</label>
                 <div class="input-group">
@@ -164,7 +178,8 @@ if (isset($_POST['mostrar_tablas']) || isset($_POST['base_datos'])) {
                 <input type="hidden" name="base_datos" value="<?php echo htmlspecialchars($_POST['base_datos']); ?>">
                 <input type="hidden" name="ruta" value="<?php echo htmlspecialchars($ruta); ?>">
                 <input type="hidden" name="nombre_archivo" value="<?php echo htmlspecialchars($nombre_archivo); ?>">
-                
+                <input type="hidden" name="nombre_proyecto" value="<?php echo htmlspecialchars($nombre_proyecto); ?>">
+
                 <h2>Tablas de la base de datos "<?php echo htmlspecialchars($_POST['base_datos']); ?>"</h2>
                 
                 <!-- Mostrar la ruta y archivo de conexión actuales -->
@@ -214,7 +229,7 @@ if (isset($_POST['mostrar_tablas']) || isset($_POST['base_datos'])) {
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function setRuta() {
             var fileInput = document.getElementById('fileInput');
@@ -330,19 +345,21 @@ if (isset($_POST['mostrar_tablas']) || isset($_POST['base_datos'])) {
             });
         });
 
-        // Nueva función para generar el módulo de acceso
+        // función para generar el módulo de acceso
         function generarModuloAcceso() {
             var ruta = $('#ruta').val();
             var nombre_archivo = $('#nombre_archivo').val();
             var base_datos = $('#base_datos').val();
+            var nombre_proyecto = $('#nombre_proyecto').val(); // Capturar nombre_proyecto
 
             console.log("Ruta:", ruta);
             console.log("Nombre de archivo:", nombre_archivo);
             console.log("Base de datos:", base_datos);
+            console.log("Nombre del proyecto:", nombre_proyecto);
 
             // Verificar que la ruta, el archivo y la base de datos no estén vacíos
-            if (!ruta || !nombre_archivo || !base_datos) {
-                alert('Por favor, ingrese la ruta del proyecto, el nombre del archivo de conexión y seleccione una base de datos.');
+            if (!ruta || !nombre_archivo || !base_datos || !nombre_proyecto) { // Validar nombre_proyecto
+                alert('Por favor, ingrese la ruta del proyecto, el nombre del archivo de conexión, el nombre del proyecto y seleccione una base de datos.');
                 return;
             }
 
@@ -350,9 +367,14 @@ if (isset($_POST['mostrar_tablas']) || isset($_POST['base_datos'])) {
             $.post('include/actualizar_sesion.php', {
                 ruta: ruta,
                 nombre_archivo: nombre_archivo,
-                base_datos: base_datos
-            }, function() {
+                base_datos: base_datos,
+                nombre_proyecto: nombre_proyecto // Enviar nombre_proyecto
+            }, function(response) {
+                console.log("Sesión actualizada:", response); // Depuración
                 window.location.href = 'modulo_acceso.php';
+            }).fail(function(xhr) {
+                console.error("Error al actualizar la sesión:", xhr.responseText); // Depuración
+                alert('Error al actualizar la sesión.');
             });
         }
     </script>

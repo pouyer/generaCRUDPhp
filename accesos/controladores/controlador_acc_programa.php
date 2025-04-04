@@ -124,10 +124,6 @@ class ControladorAcc_programa {
         }
     }
 
-    public function obtenerModulos() {
-        return $this->modelo->obtenerModulos();
-    }
-
 }
 
 $accion = $_GET['action'] ?? '';
@@ -176,7 +172,6 @@ switch ($accion) {
         $paginaActual = (int)($_GET['pagina'] ?? 1); // Asegúrate de que sea un entero
         $offset = ($paginaActual - 1) * $registrosPorPagina; // Calcular el offset
         $registros = $controlador->obtenerTodos($registrosPorPagina, $paginaActual);
-        $modulos = $controlador->obtenerModulos(); // Agregar esta línea
         include '../vistas/vista_acc_programa.php'; // Incluir la vista correspondiente
         break;
 }

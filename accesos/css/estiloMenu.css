@@ -9,6 +9,15 @@
     --color-fondo-submenu: #6aa2f6; /* Color de fondo del submenú cuando está activo */
     --color-fondo-item: #e0f7fa; /* Color de fondo del item de la lista */
     --color-fondo-item-activo: #6aa2f6; /* Color de fondo del item de la lista cuando está activo */
+    --color-header-background: #f8f9fa; /* Color de fondo del encabezado */
+    --color-header-texto: #13023b; /* Color de texto del encabezado */
+    --color-header-border: #007bff; /* Color de texto de los enlaces en el encabezado */
+    --color-logout-background: #1b9984; /* Color de fondo del Boton logout */
+    --color-logout-texto: #fff; /* Color de Texto del Boton logout */
+    --color-footer-background: #f8f9fa; /* Color de fondo del pie de página */
+    --color-footer-border: #007bff; /* Color de borde del pie de página */
+    --color-footer-texto: #13023b; /* Color de texto del pie de página */
+    --color-footer-enlace: #007bff; /* Color de texto de los enlaces en el pie de página */
 }
 
 .menu-fondo {
@@ -63,4 +72,43 @@ iframe {
     border: none;
     width: 100%; /* Ajustar el ancho según sea necesario */
     height: 600px;
+}
+
+/* Estilos para la barra de navegación */
+.navbar {
+    background-color: var(--color-fondo-menu); /* Color de fondo de la barra de navegación */
+    color: var(--color-texto-menu); /* Color de texto de la barra de navegación */
+}
+
+/* Estilos para encabezado superior de conecxion */
+.header-container {
+    background-color: var(--color-header-background);
+    color: var(--color-header-texto);
+    padding: 15px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--color-header-border);
+}
+.user-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.welcome-text {
+    margin: 0;
+    font-size: 1.2em;
+}
+.logout-btn {
+    background-color: var(--color-logout-background);
+    color: var(--color-logout-background);
+    padding: 5px 15px;
+}
+.footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background-color: var(--color-footer-background);
+    padding: 10px 0;
+    font-size: 0.9em;
+    text-align: center;
+    border-top: 1px solid var(--color-footer-border);
 }

@@ -4,3 +4,31 @@
    .table th, .table td {
        font-size: 0.85rem; /* Ajustar el tamaño de fuente de la tabla */
    }
+    .table th {
+         background-color: #9baec2; /* Color de fondo para los encabezados de la tabla */
+    }
+
+
+.login-container {
+    max-width: 400px;
+    margin: 50px auto;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    background-color: #fff;
+}
+.cambiar-container {
+    max-width: 500px;
+    margin: 50px auto;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    background-color: #fff;
+}
+.form-group {
+    margin-bottom: 15px;
+}
+.alert {
+    margin-top: 15px;
+    margin-bottom: 15px;
+}

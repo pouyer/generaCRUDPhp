@@ -9,9 +9,10 @@ function generar_vista($tabla, $campos, $directorio, $es_vista) {
  * permitir la administracion de tablas creando leer, actualizar, editar y elimar reguistros
  * Desarrollado por Carlos Mejia
  * 2024-12-06
- * Version 0.3.0
+ * Version 0.4.0
  * 
  */\n";
+    $contenido .= "require_once '../accesos/verificar_sesion.php';\n";
     $contenido .= "    \$registrosPorPagina = isset(\$_GET['registrosPorPagina']) ? (int)\$_GET['registrosPorPagina'] : 10;\n";
     $contenido .= "    \$paginaActual = isset(\$_GET['pagina']) ? (int)\$_GET['pagina'] : 1;\n";
     $contenido .= "?>\n";
@@ -34,12 +35,14 @@ function generar_vista($tabla, $campos, $directorio, $es_vista) {
     
     // Solo mostrar botón de crear si no es una vista
     if (!$es_vista) {
-        $contenido .= "            <button class=\"btn btn-primary icon-plus\" data-toggle=\"modal\" data-target=\"#modalCrear\">Crear</button>\n";
+        $contenido .= "            <button type=\"button\" class=\"btn btn-primary icon-plus\" data-bs-toggle=\"modal\" data-bs-target=\"#modalCrear\">\n";
+        $contenido .= "                Crear\n";
+        $contenido .= "            </button>\n";
     } else {
         $contenido .= "            <div></div>\n"; // Espacio vacío para mantener el layout
     }
     $contenido .= "            <div class=\"btn-group\">\n";
-    $contenido .= "                <button class=\"btn btn-success dropdown-toggle icon-export\" type=\"button\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\">\n";
+    $contenido .= "                <button class=\"btn btn-success dropdown-toggle icon-export\" type=\"button\" data-bs-toggle=\"dropdown\" aria-expanded=\"false\">\n";
     $contenido .= "                    Exportar\n";
     $contenido .= "                </button>\n";
     $contenido .= "                <div class=\"dropdown-menu\">\n";
@@ -51,13 +54,13 @@ function generar_vista($tabla, $campos, $directorio, $es_vista) {
     $contenido .= "        </div>\n";
     
     // Formulario de búsqueda
-    $contenido .= "        <form method=\"GET\" action=\"../controladores/controlador_$tabla.php\" class=\"form-inline mb-3\">\n";
+    $contenido .= "        <form method=\"GET\" action=\"../controladores/controlador_$tabla.php\" class=\"d-flex mb-3\">\n";
     $contenido .= "            <div class=\"input-group\" style=\"width: 100%;\">\n";
     $contenido .= "                <input type=\"text\" name=\"busqueda\" class=\"form-control\" placeholder=\"Buscar...\" value=\"<?php echo isset(\$_GET['busqueda']) ? htmlspecialchars(\$_GET['busqueda']) : ''; ?>\">\n";
     $contenido .= "                <input type=\"hidden\" name=\"action\" value=\"buscar\">\n";
     $contenido .= "                <input type=\"hidden\" name=\"registrosPorPagina\" value=\"<?= \$registrosPorPagina ?>\">\n";
     $contenido .= "                <input type=\"hidden\" name=\"pagina\" value=\"<?= \$paginaActual ?>\">\n";
-    $contenido .= "                <div class=\"input-group-append\">\n";
+   // $contenido .= "                <div class=\"input-group-append\">\n"; 
     $contenido .= "                    <button type=\"submit\" class=\"btn btn-secondary icon-search-outline\"> </button>\n";
     $contenido .= "                    <?php if(isset(\$_GET['busqueda']) && \$_GET['busqueda'] !== ''): ?>\n";
     $contenido .= "                        <a href=\"../controladores/controlador_$tabla.php\" class=\"btn btn-outline-danger icon-eraser\"> </a>  <!-- Aqui boton limpiar si requiere nombre -->\n";
@@ -111,15 +114,13 @@ function generar_vista($tabla, $campos, $directorio, $es_vista) {
     }
     $contenido .= "                    <td>\n";
     if (!$es_vista) {
-        $contenido .= "                        <button class=\"btn btn-warning icon-edit\" data-toggle=\"modal\" data-target=\"#modalActualizar\" data-idActualizar=\"<?php echo \$registro['" . $campos[0]['Field'] . "']; ?>\"";
-
+        $contenido .= "                        <button type=\"button\" class=\"btn btn-warning icon-edit\" data-bs-toggle=\"modal\" data-bs-target=\"#modalActualizar\" data-idActualizar=\"<?php echo \$registro['" . $campos[0]['Field'] . "']; ?>\"";
         // Agregar atributos data-* para cada campo que se desea cargar
         foreach ($campos as $campo) {
             $contenido .= "\n                           data-" . htmlspecialchars($campo['Field']) . "=\"<?php echo htmlspecialchars(\$registro['" . $campo['Field'] . "']); ?>\"";
         }
-        $contenido .= "> </button>  <!-- Boton Eliminar si requiere nombre aqui se pone -->\n"; // Boton Editar si requiere nombre aqui se pone
+        $contenido .= "> </button>  <!-- Boton Editar si requiere nombre aqui se pone -->\n";
         $contenido .= "                        <button class=\"btn btn-danger icon-trash-2\" onclick=\"eliminar('<?php echo htmlspecialchars(\$registro['" . $campos[0]['Field'] . "']); ?>')\"> </button>  <!-- Boton Eliminar si requiere nombre aqui se pone -->\n";
-        $contenido .= "                    </td>\n";
     }
     $contenido .= "                </tr>\n";
     $contenido .= "                <?php endforeach; else: ?>\n";
@@ -130,12 +131,12 @@ function generar_vista($tabla, $campos, $directorio, $es_vista) {
 
     // 1. Agregar un formulario para seleccionar el número de registros por página
     $contenido .= "        <div class=\"mb-3\">\n";
-    $contenido .= "            <form method=\"GET\" class=\"form-inline\">\n";
+    $contenido .= "            <form method=\"GET\" class=\"d-flex\">\n";
     $contenido .= "                <label for=\"registrosPorPagina\" class=\"mr-2\">Registros por página:</label>\n";
     $contenido .= "                <select id=\"registrosPorPagina\" name=\"registrosPorPagina\" class=\"form-control mr-2\" onchange=\"this.form.submit()\">\n";
 
 // Opciones del select
-foreach ([10, 20, 30, 50] as $opcion) {
+foreach ([15, 30, 50, 100] as $opcion) {
     $contenido .= "                    <option value=\"".$opcion."\" <?= \$registrosPorPagina == ".$opcion." ? 'selected' : '' ?>>".$opcion."</option>\n";
 }
 
@@ -170,17 +171,15 @@ $contenido .= "            </ul>\n";
 $contenido .= "        </nav>\n";
 
     // Modal para crear
-    $contenido .= "        <div class=\"modal fade\" id=\"modalCrear\" tabindex=\"-1\" role=\"dialog\">\n";
-    $contenido .= "            <div class=\"modal-dialog modal-lg\" role=\"document\">\n";
+    $contenido .= "        <div class=\"modal fade\" id=\"modalCrear\" tabindex=\"-1\" aria-labelledby=\"modalCrearLabel\" aria-hidden=\"true\">\n";
+    $contenido .= "            <div class=\"modal-dialog modal-lg\">\n";
     $contenido .= "                <div class=\"modal-content\">\n";
     $contenido .= "                    <div class=\"modal-header\">\n";
-    $contenido .= "                        <h5 class=\"modal-title\">Crear $nombreClase</h5>\n";
-    $contenido .= "                        <button type=\"button\" class=\"close\" data-dismiss=\"modal\" aria-label=\"Close\">\n";
-    $contenido .= "                            <span aria-hidden=\"true\">&times;</span>\n";
-    $contenido .= "                        </button>\n";
+    $contenido .= "                        <h5 class=\"modal-title\" id=\"modalCrearLabel\">Crear $nombreClase</h5>\n";
+    $contenido .= "                        <button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"modal\" aria-label=\"Close\"></button>\n";
     $contenido .= "                    </div>\n";
     $contenido .= "                    <div class=\"modal-body\">\n";
-    $contenido .= "                        <form id=\"formCrear\">\n";
+    $contenido .= "                        <form id=\"formCrear\" method=\"post\">\n";
 
     // Campos del formulario de creación
     // Inicializar el contador
@@ -204,10 +203,10 @@ $contenido .= "        </nav>\n";
 
         // Aquí puedes usar el contador para determinar si debes crear una nueva fila
         if ($contador % 2 == 1) {    
-            $contenido .= "                            <div class=\"form-row\">\n"; // Abrir nueva fila
+            $contenido .= "                            <div class=\"row\">\n"; // Abrir nueva fila
         }
 
-        $contenido .= "                                <div class=\"form-group col-md-6\">\n"; // Cambiado a col-md-6
+        $contenido .= "                                <div class=\"col-md-6 mb-3\">\n"; // Cambiado a col-md-6
         $contenido .= "                                    <label for=\"{$campo['Field']}\">" . htmlspecialchars($campo['Field']) . ":</label>\n";
         if (strpos($campo['Type'], 'date') !== false || strpos($campo['Type'], 'datetime') !== false) {
             $contenido .= "                                     <input type=\"date\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\"" . ($campo['Null'] == 'NO' ? ' required' : '') . ">\n";
@@ -232,19 +231,19 @@ $contenido .= "        </nav>\n";
     $contenido .= "        </div>\n";
 
     // Modal para actualizar
-    $contenido .= "        <div class=\"modal fade\" id=\"modalActualizar\" tabindex=\"-1\" role=\"dialog\">\n";
-    $contenido .= "            <div class=\"modal-dialog modal-lg\" role=\"document\">\n";
+    $contenido .= "        <div class=\"modal fade\" id=\"modalActualizar\" tabindex=\"-1\" aria-labelledby=\"modalActualizarLabel\" aria-hidden=\"true\">\n";
+    $contenido .= "            <div class=\"modal-dialog modal-lg\" >\n";
     $contenido .= "                <div class=\"modal-content\">\n";
 
     $contenido .= "                <div class=\"modal-body\">\n";
-    $contenido .= "                    <form id=\"formActualizar\">\n";
+    $contenido .= "                    <form id=\"formActualizar\" method=\"post\">\n";
     // Campos del formulario de actualización
 
     $contador= 0;
     foreach ($campos as $index => $campo) {
         if ($campo['Key'] == 'PRI') {
             $contenido .= "                     <div class=\"modal-header\">\n";
-            $contenido .= "                         <div class=\"form-row\">\n";
+            $contenido .= "                         <div class=\"row\">\n";
             $contenido .= "                             <div class=\"form-group col-md-8\">\n";
             $contenido .= "                               <h5 class=\"modal-title\">Actualizar $nombreClase - ID: </h5>\n";
             $contenido .= "                             </div>\n";
@@ -254,17 +253,16 @@ $contenido .= "        </nav>\n";
             $contenido .= "                                </div>\n";  
             $contenido .= "                             </div>\n";  
             $contenido .= "                         </div>\n"; 
-            $contenido .= "                         <button type=\"button\" class=\"close\" data-dismiss=\"modal\" aria-label=\"Close\">\n";
-            $contenido .= "                            <span aria-hidden=\"true\">&times;</span>\n";
+            $contenido .= "                         <button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"modal\" aria-label=\"Close\">\n";
             $contenido .= "                         </button>\n";
             $contenido .= "                     </div>\n";
         }  else {
             if ($campo['Default'] != 'current_timestamp()' && $campo['Extra'] != 'on update current_timestamp()') { // Excluimos CURRENT_TIMESTAMP
                 $contador++;
                 if ($contador % 2 == 1) { // Cada dos campos en una fila
-                    $contenido .= "                            <div class=\"form-row\">\n";
+                    $contenido .= "                            <div class=\"row\">\n";
                 }
-                $contenido .= "                                 <div class=\"form-group col-md-6\">\n"; // Cambiado a col-md-6
+                $contenido .= "                                 <div class=\"col-md-6 mb-3\">\n"; // Cambiado a col-md-6
                 $contenido .= "                                     <label for=\"{$campo['Field']}\">" . htmlspecialchars($campo['Field']) . ":</label>\n";
                 if (strpos($campo['Type'], 'date') !== false || strpos($campo['Type'], 'datetime') !== false) {
                     $contenido .= "                                     <input type=\"date\" class=\"form-control\" id=\"{$campo['Field']}\" name=\"{$campo['Field']}\"" . ($campo['Null'] == 'NO' ? ' required' : '') . ">\n";
@@ -294,81 +292,181 @@ $contenido .= "        </nav>\n";
     $contenido .= "         </div>\n";
     $contenido .= "     </div>\n";
 
-    $contenido .= "    <script src=\"https://code.jquery.com/jquery-3.6.0.min.js\"></script>\n";
-    $contenido .= "    <script src=\"https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js\"></script>\n";
+    $contenido .= "    <!-- Scripts necesarios -->\n";
+    $contenido .= "    <script src=\"https://code.jquery.com/jquery-3.7.1.min.js\"></script>\n";
+    $contenido .= "    <script src=\"https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js\"></script>\n";
+    $contenido .= "    <script src=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js\"></script>\n\n";
 
-    // Script para manejar la eliminación
+    // Agregar el script de inicialización de modales
+    $contenido .= "    <script>\n";
+    $contenido .= "        document.addEventListener('DOMContentLoaded', function() {\n";
+    $contenido .= "            // Inicializar todos los modales\n";
+    $contenido .= "            var myModalCreate = new bootstrap.Modal(document.getElementById('modalCrear'));\n";
+    $contenido .= "            var myModalUpdate = new bootstrap.Modal(document.getElementById('modalActualizar'));\n\n";
+
+    $contenido .= "            // Manejador para el botón crear\n";
+    $contenido .= "            document.querySelector('[data-bs-target=\"#modalCrear\"]').addEventListener('click', function() {\n";
+    $contenido .= "                myModalCreate.show();\n";
+    $contenido .= "            });\n\n";
+
+    $contenido .= "            // Manejador del formulario crear\n";
+    $contenido .= "            document.getElementById('formCrear').addEventListener('submit', function(e) {\n";
+    $contenido .= "                e.preventDefault();\n";
+    $contenido .= "                const formData = new FormData(this);\n";
+    $contenido .= "                fetch('../controladores/controlador_$tabla.php?action=crear', {\n";
+    $contenido .= "                    method: 'POST',\n";
+    $contenido .= "                    body: new URLSearchParams(formData)\n";
+    $contenido .= "                })\n";
+    $contenido .= "                .then(response => response.json())\n";
+    $contenido .= "                .then(data => {\n";
+    $contenido .= "                    if(data) {\n";
+    $contenido .= "                        myModalCreate.hide();\n";
+    $contenido .= "                        location.reload();\n";
+    $contenido .= "                    } else {\n";
+    $contenido .= "                        alert('Error al crear el registro.');\n";
+    $contenido .= "                    }\n";
+    $contenido .= "                })\n";
+    $contenido .= "                .catch(error => {\n";
+    $contenido .= "                    console.error('Error:', error);\n";
+    $contenido .= "                    alert('Error al procesar la solicitud.');\n";
+    $contenido .= "                });\n";
+    $contenido .= "            });\n";
+
+    // Agregar debug para verificar la inicialización
+    $contenido .= "            console.log('Modal crear:', document.getElementById('modalCrear'));\n";
+    $contenido .= "            console.log('Botón crear:', document.querySelector('[data-bs-target=\"#modalCrear\"]'));\n";
+
+    $contenido .= "        });\n";
+    $contenido .= "    </script>\n";
+
+    // Actualizar el script para manejar el modal de actualización
+    $contenido .= "    <script>\n";
+    $contenido .= "        document.addEventListener('DOMContentLoaded', function() {\n";
+    $contenido .= "            // Inicializar el modal de actualización\n";
+    $contenido .= "            var modalActualizar = new bootstrap.Modal(document.getElementById('modalActualizar'));\n\n";
+
+    $contenido .= "            // Manejar el evento show.bs.modal\n";
+    $contenido .= "            document.getElementById('modalActualizar').addEventListener('show.bs.modal', function(event) {\n";
+    $contenido .= "                // Botón que activó el modal\n";
+    $contenido .= "                var button = event.relatedTarget;\n";
+    $contenido .= "                var modal = this;\n\n";
+
+    // Agregar código para cargar los datos en el formulario
+    foreach ($campos as $campo) {
+        $contenido .= "                // Cargar {$campo['Field']}\n";
+        $contenido .= "                var valor{$campo['Field']} = button.getAttribute('data-{$campo['Field']}');\n";
+        $contenido .= "                if(modal.querySelector('#{$campo['Field']}')) {\n";
+        $contenido .= "                    modal.querySelector('#{$campo['Field']}').value = valor{$campo['Field']};\n";
+        $contenido .= "                }\n";
+    }
+
+    $contenido .= "            });\n\n";
+
+    // Manejar el envío del formulario de actualización
+    $contenido .= "            document.getElementById('formActualizar').addEventListener('submit', function(e) {\n";
+    $contenido .= "                e.preventDefault();\n";
+    $contenido .= "                const formData = new FormData(this);\n";
+    $contenido .= "                fetch('../controladores/controlador_$tabla.php?action=actualizar', {\n";
+    $contenido .= "                    method: 'POST',\n";
+    $contenido .= "                    body: new URLSearchParams(formData)\n";
+    $contenido .= "                })\n";
+    $contenido .= "                .then(response => response.json())\n";
+    $contenido .= "                .then(data => {\n";
+    $contenido .= "                    if(data) {\n";
+    $contenido .= "                        modalActualizar.hide();\n";
+    $contenido .= "                        location.reload();\n";
+    $contenido .= "                    } else {\n";
+    $contenido .= "                        alert('Error al actualizar el registro.');\n";
+    $contenido .= "                    }\n";
+    $contenido .= "                })\n";
+    $contenido .= "                .catch(error => {\n";
+    $contenido .= "                    console.error('Error:', error);\n";
+    $contenido .= "                    alert('Error al procesar la solicitud.');\n";
+    $contenido .= "                });\n";
+    $contenido .= "            });\n\n";
+
+    // Agregar logs de depuración
+    $contenido .= "            console.log('Modal actualizar:', document.getElementById('modalActualizar'));\n";
+    $contenido .= "            console.log('Botones actualizar:', document.querySelectorAll('[data-bs-target=\"#modalActualizar\"]'));\n";
+
+    $contenido .= "        });\n";
+    $contenido .= "    </script>\n";
+
+    // Función eliminar con confirmación
     $contenido .= "        <script>\n";
+    $contenido .= "            // Función para eliminar registros con confirmación\n";
     $contenido .= "            function eliminar(id) {\n";
     $contenido .= "                if (confirm('¿Estás seguro de que deseas eliminar este registro?')) {\n";
-    $contenido .= "                    $.ajax({\n";
-    $contenido .= "                        type: 'POST',\n";
-    $contenido .= "                        url: '../controladores/controlador_$tabla.php?action=eliminar', // Cambia esto a la ruta correcta\n";
-    $contenido .= "                        data: { id: id },\n";
-    $contenido .= "                        success: function(response) {\n";
-    $contenido .= "                            location.reload();\n";
+    $contenido .= "                    // Realizar la petición de eliminación\n";
+    $contenido .= "                    fetch('../controladores/controlador_$tabla.php?action=eliminar', {\n";
+    $contenido .= "                        method: 'POST',\n";
+    $contenido .= "                        headers: {\n";
+    $contenido .= "                            'Content-Type': 'application/x-www-form-urlencoded',\n";
     $contenido .= "                        },\n";
-    $contenido .= "                        error: function(xhr, status, error) {\n";
-    $contenido .= "                            console.error(error);\n";
+    $contenido .= "                        body: 'id=' + encodeURIComponent(id)\n";
+    $contenido .= "                    })\n";
+    $contenido .= "                    .then(response => {\n";
+    $contenido .= "                        if (!response.ok) {\n";
+    $contenido .= "                            throw new Error('Error en la respuesta del servidor');\n";
+    $contenido .= "                        }\n";
+    $contenido .= "                        return response.json();\n";
+    $contenido .= "                    })\n";
+    $contenido .= "                    .then(data => {\n";
+    $contenido .= "                        if (data) {\n";
+    $contenido .= "                            // Si la eliminación fue exitosa, recargar la página\n";
+    $contenido .= "                            location.reload();\n";
+    $contenido .= "                        } else {\n";
+    $contenido .= "                            // Si hubo un error en la eliminación\n";
     $contenido .= "                            alert('Error al eliminar el registro.');\n";
     $contenido .= "                        }\n";
+    $contenido .= "                    })\n";
+    $contenido .= "                    .catch(error => {\n";
+    $contenido .= "                        // Manejo de errores en la petición\n";
+    $contenido .= "                        console.error('Error:', error);\n";
+    $contenido .= "                        alert('Error al eliminar el registro: ' + error.message);\n";
     $contenido .= "                    });\n";
     $contenido .= "                }\n";
     $contenido .= "            }\n";
+
+    // Opcional: Agregar una función para mostrar mensajes de confirmación más estilizados con Bootstrap
+    $contenido .= "            // Función para mostrar mensajes de confirmación estilizados\n";
+    $contenido .= "            function mostrarMensaje(mensaje, tipo = 'success') {\n";
+    $contenido .= "                const alertPlaceholder = document.createElement('div');\n";
+    $contenido .= "                alertPlaceholder.innerHTML = `\n";
+    $contenido .= "                    <div class=\"alert alert-\${tipo} alert-dismissible fade show\" role=\"alert\">\n";
+    $contenido .= "                        \${mensaje}\n";
+    $contenido .= "                        <button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"alert\" aria-label=\"Close\"></button>\n";
+    $contenido .= "                    </div>\n";
+    $contenido .= "                `;\n";
+    $contenido .= "                document.querySelector('.container').insertBefore(alertPlaceholder, document.querySelector('.container').firstChild);\n";
+    $contenido .= "                // Remover el mensaje después de 3 segundos\n";
+    $contenido .= "                setTimeout(() => {\n";
+    $contenido .= "                    alertPlaceholder.remove();\n";
+    $contenido .= "                }, 3000);\n";
+    $contenido .= "            }\n";
+
     $contenido .= "        </script>\n";
 
-    // Script para manejar el envío del formulario de creación
+    // Asegurarse de que los estilos del modal estén correctos
+    $contenido .= "    <style>\n";
+    $contenido .= "        .modal-backdrop {\n";
+    $contenido .= "            z-index: 1040;\n";
+    $contenido .= "        }\n";
+    $contenido .= "        .modal {\n";
+    $contenido .= "            z-index: 1050;\n";
+    $contenido .= "        }\n";
+    $contenido .= "    </style>\n";
+
+    // Inicialización de dropdowns de Bootstrap 5
     $contenido .= "        <script>\n";
-    $contenido .= "            $(document).ready(function() {\n";
-    $contenido .= "                $('#formCrear').on('submit', function(e) {\n";
-    $contenido .= "                    e.preventDefault(); // Evitar el envío normal del formulario\n";
-    $contenido .= "                    $.ajax({\n";
-    $contenido .= "                        type: 'POST',\n";
-    $contenido .= "                        url: '../controladores/controlador_$tabla.php?action=crear', // Cambia esto a la ruta correcta\n";
-    $contenido .= "                        data: $(this).serialize(),\n";
-    $contenido .= "                        success: function(response) {\n";
-    $contenido .= "                            location.reload(); // Recargar la página para ver los cambios\n";
-    $contenido .= "                        },\n";
-    $contenido .= "                        error: function(xhr, status, error) {\n";
-    $contenido .= "                            console.error(error);\n";
-    $contenido .= "                            alert('Error al crear el registro.');\n";
-    $contenido .= "                        }\n";
-    $contenido .= "                    });\n";
+    $contenido .= "            // Inicializar todos los dropdowns\n";
+    $contenido .= "            document.addEventListener('DOMContentLoaded', function() {\n";
+    $contenido .= "                var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'));\n";
+    $contenido .= "                var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {\n";
+    $contenido .= "                    return new bootstrap.Dropdown(dropdownToggleEl);\n";
     $contenido .= "                });\n";
-
-    // Script para manejar el envío del formulario de actualización
-    $contenido .= "                $('#formActualizar').on('submit', function(e) {\n";
-    $contenido .= "                    e.preventDefault(); // Evitar el envío normal del formulario\n";
-    $contenido .= "                    console.log($(this).serialize()); // Verificar los datos enviados\n";
-    $contenido .= "                    $.ajax({\n";
-    $contenido .= "                        type: 'POST',\n";
-    $contenido .= "                        url: '../controladores/controlador_$tabla.php?action=actualizar', // Cambia esto a la ruta correcta\n";
-    $contenido .= "                        data: $(this).serialize(),\n";
-    $contenido .= "                        success: function(response) {\n";
-    $contenido .= "                            location.reload(); // Recargar la página para ver los cambios\n";
-    $contenido .= "                        },\n";
-    $contenido .= "                        error: function(xhr, status, error) {\n";
-    $contenido .= "                            console.error(error);\n";
-    $contenido .= "                            alert('Error al actualizar el registro.');\n";
-    $contenido .= "                        }\n";
-    $contenido .= "                    });\n";
-    $contenido .= "                });\n";
-
-    // Script para cargar datos en el modal de actualización
-    $contenido .= "                $('#modalActualizar').on('show.bs.modal', function(event) {\n";
-    $contenido .= "                    var button = $(event.relatedTarget);\n";
-    $contenido .= "                    var id = button.data('idActualizar');\n";
-    $contenido .= "                    var modal = $(this);\n";
-    $contenido .= "                    modal.find('#idActualizar').val(id);\n";
-
-    // Cargar cada campo en el modal
-    foreach ($campos as $campo) {
-        $contenido .= "                 modal.find('#{$campo['Field']}').val(button.data('{$campo['Field']}'));\n";
-    }
-
-    $contenido .= "                });\n";
-
     $contenido .= "            });\n";
+
     $contenido .= "        </script>\n";
 
     $contenido .= "    </div>\n";

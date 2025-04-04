@@ -305,7 +305,18 @@ function generar_modelo($tabla, $campos, $directorio, $archivo_conexion, $es_vis
     $contenido .= "            return false;\n";
     $contenido .= "        }\n";
     $contenido .= "    }\n\n"; //fin funcion exportarDatos
+    $contenido .= "    public function obtenerEstados() {
+        \$sql = \"SELECT estado, nombre_estado FROM acc_estado where tabla = '$tabla' and visible = 1 order by orden\"; // Asegúrate de que los nombres de las tablas y columnas sean correctos
+        \$resultado = \$this->conexion->query(\$sql);
+        \$estados = [];
 
+        if (\$resultado->num_rows > 0) {
+            while (\$fila = \$resultado->fetch_assoc()) {
+                \$estados[] = \$fila;
+            }
+        }
+        return \$estados;
+    } \n\n"; //fin funcion obtenerEstados
     $contenido .= "}\n?>"; //fin generacion clase modelo
 
     $archivo = "$directorio/modelo_$tabla.php";

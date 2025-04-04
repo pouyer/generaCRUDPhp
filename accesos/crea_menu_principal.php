@@ -10,55 +10,113 @@ include "../include/funciones_utilidades.php";
         $response['ruta_ingresa'] = $ruta; // Imprimir ruta de origen
 
         // Preparar la consulta SQL
-        $query = "UPDATE `acc_programa` SET `ruta` = ? WHERE (`id_programas` in (1,2,3,4,5))";
+        $query = "UPDATE `acc_programa` SET `ruta` = ? WHERE (`id_programas` in (1,2,3,4,5,6))";
         $stmt = $conexion->prepare($query);
         
         // Verificar si la preparación fue exitosa
         if (!$stmt) {
             $response['error'] = "Error en la preparación de la consulta: " . $conexion->error;
-            echo json_encode($response);
-            return false;
+            return $response; // Devolver el error
         }
         $ruta = '/' . $ruta;
         // Vincular el parámetro y ejecutar la consulta
         $stmt->bind_param('s', $ruta);
         if ($stmt->execute()) {
             $response['success'] = "Ruta actualizada exitosamente.";
-            echo json_encode($response);
-            return true;
         } else {
             $response['error'] = "Error al ejecutar la consulta: " . $stmt->error;
-            echo json_encode($response);
-            return false;
         }
+        return $response; // Devolver la respuesta
     }
    
+    function crearArchivo($archivo, $contenido) {
+        $fp = fopen($archivo, 'w');
+        fwrite($fp, $contenido);
+        fclose($fp);
+    }
+
+    function genera_configuracion($nombreproyecto, $rutaBase, $proyecto) {
+        // Verificar si la carpeta 'config' existe, si no, crearla
+        $rutaConfig = $rutaBase . '/config';
+        if (!file_exists($rutaConfig)) {
+            mkdir($rutaConfig, 0777, true);
+        }
+               // Crea archivo Config del proyecto
+               $fecha = date('Y-m-d ');
+               $contenido = "<?php\n";
+               $contenido .= "/**
+        * Archivo de configuración global
+        * Contiene constantes y variables de configuración del sistema
+        */
+       
+       // Información de versión
+       define('APP_VERSION', '1.0.0');
+       define('APP_VERSION_DATE', '".$fecha."');
+       define('APP_NAME', '".$nombreproyecto."');
+       
+       // Otras configuraciones globales pueden agregarse aquí
+       // define('BASE_URL', 'http://localhost/" . $proyecto . "/');
+       // define('DEBUG_MODE', false);
+       
+       /**
+        * Función para obtener información completa de la versión
+        * @return string Información formateada de la versión
+        */
+       function getVersionInfo() {
+           return APP_NAME . ' v' . APP_VERSION . ' (' . APP_VERSION_DATE . ')';
+       } ";
+       
+               $rutaConfig = $rutaBase . '/config/config.php';
+              // file_put_contents($rutaConfig, $contenido);
+                // Crea archivo Config del proyecto
+                crearArchivo($rutaConfig, $contenido);
+       
+    } 
+
     function generar_headIconos($directorio) {
         $contenido = '    <!-- headIconos.php -->
     <!-- Incluir estilos de bootstrap -->
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+		<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"> 
     <!-- Incluir estilos de iconos -->
-        <link href="../../iconos-web/css/iconos_web_fontello.css" rel="stylesheet" type="text/css">
-        <link href="../../iconos-web/css/iconos_web_fontello-embedded.css" rel="stylesheet" type="text/css">
-        <link href="../../iconos-web/css/animation.css" rel="stylesheet" type="text/css">
-        <link href="../../iconos-web/css/iconos_web_fontello-codes.css" rel="stylesheet" type="text/css">
-    
-        <link rel="stylesheet" href="../../iconos-web/css/estiloIconos.css">
+		<link href="../iconos-web/css/iconos_web_fontello.css" rel="stylesheet" type="text/css">
+		<link href="../iconos-web/css/iconos_web_fontello-embedded.css" rel="stylesheet" type="text/css">
+		<link href="../iconos-web/css/animation.css" rel="stylesheet" type="text/css">
+		<link href="../iconos-web/css/iconos_web_fontello-codes.css" rel="stylesheet" type="text/css">
+		<link rel="stylesheet" href="../iconos-web/css/estiloIconos.css">
     
     <!-- Otros estilos o scripts que necesites -->';
+	   $parametro = normalizar_ruta($directorio);
+		error_log("Directorio: $parametro"); // Imprimir directorio entra parametro
         if (!is_dir("../../iconos-web")) {
                // genera ruta de iconos que puede usar la aplicacion
-                $origenIconos = __DIR__ . "/../../iconos-web"; // Cambiar la ruta para subir un nivel
+                $origenIconos = __DIR__ . "/../iconos-web"; // Cambiar la ruta para subir un nivel
                 $origenIconos = normalizar_ruta($origenIconos);
-                //error_log("Ruta de origen: $origenIconos"); // Imprimir ruta de origen
-                $ruta = $_POST['ruta'];
+                error_log("Ruta de origen: $origenIconos"); // Imprimir ruta de origen
+                $ruta = $parametro;
                 $destinoIconos =  $ruta . "/iconos-web";
                 $destinoIconos = normalizar_ruta($destinoIconos);
-                //error_log("Ruta de destino: $destinoIconos"); // Imprimir ruta de destino
+                error_log("Ruta de destino: $destinoIconos"); // Imprimir ruta de destino
                 copiarCarpeta($origenIconos, $destinoIconos);
         }
         $archivo = "$directorio/headIconos.php";
-        return file_put_contents($archivo, $contenido) !== false;
+        // crea el archivo headIconos.php
+        crearArchivo($archivo, $contenido);
+
+        // crea el archivo de verificacion de sesion
+        $creaverificasesion = "$directorio/verificar_sesion.php";
+        $contenido = "<?php
+session_start();
+// Verificar si la sesión está activa
+// Obtener información del usuario para uso en las páginas
+// Usando operador de fusión de null (??) o verificando con isset para evitar avisos
+\$usuario_id = \$_SESSION['usuario_id'] ?? 0; // Asignar 0 si no está definido
+\$usuario_nombre = \$_SESSION['usuario_nombre'] ?? 'sin login';
+\$usuario_perfil = \$_SESSION['usuario_perfil'] ?? '';
+
+// Otras variables de sesión según sea necesario
+// ";
+        crearArchivo($creaverificasesion, $contenido);
     }
 
     function crearMenuPrincipal($ruta, $conexion) {
@@ -92,6 +150,7 @@ include "../include/funciones_utilidades.php";
 
         // crea archivo de headIcon.php para el modulo de accesos
         generar_headIconos($rutaBase);
+ 
         // Crear el archivo index.php
         $contenido = "<?php\n// Redirigir a la vista del menú dinámico\nheader('Location: accesos/vistas/vista_menu_principal.php');\nexit();";
         $rutaPrincipalProyecto = rtrim($ruta, '/') . '/index.php';
@@ -130,6 +189,7 @@ try {
     $ruta = $_SESSION['ruta'];
     $archivo_conexion = $ruta . '/' . $_SESSION['nombre_archivo'];
     
+    
     if (!file_exists($archivo_conexion)) {
         throw new Exception("Archivo de conexión no encontrado");
     }
@@ -140,13 +200,37 @@ try {
     if (!isset($conexion)) {
         throw new Exception("Error en la conexión a la base de datos");
     }
-    // Se crea las carpetas del menu principal
+
+    // Se crea las carpetas del menú principal
     crearMenuPrincipal($ruta, $conexion);
-   // Agregar el mensaje de éxito
-    echo json_encode([
+
+    // Actualizar la ruta de programas y obtener la respuesta
+    $rutaArray = explode('\\', $ruta); // Separar por '\'
+
+
+
+    $proyecto = end($rutaArray);
+    $rutaProyecto = $proyecto . '/accesos/vistas';
+
+    $nombreproyecto = $_SESSION['nombre_proyecto'];
+    // si nombreproyecto no existe se asigna el $proyecto como nombreproyecto
+    if (empty($nombreproyecto)) {
+        $nombreproyecto = $proyecto;
+    }
+
+    $actualizaRutaResponse = actualizaRutaProgramas($rutaProyecto, $conexion);
+    // crea archivo de configuracion
+    genera_configuracion($nombreproyecto, $ruta, $proyecto);
+
+    error_log("rutaProyecto: $rutaProyecto"); // Imprimir rutaProyecto entra parametro
+
+    // Agregar el mensaje de éxito
+    $response = [
         'success' => true,
-        'message' => 'El menú principal se creó exitosamente.'
-    ]);
+        'message' => 'El menú principal se creó exitosamente.',
+        'actualizaRutaResponse' => $actualizaRutaResponse
+    ];
+    echo json_encode($response);
 
 } catch (Exception $e) {
     echo json_encode([

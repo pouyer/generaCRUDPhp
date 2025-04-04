@@ -1,9 +1,9 @@
 <?php
 require_once '../../conexion.php';
 
-class ModeloAcc_programa {
+class ModeloAcc_estado {
     private $conexion;
-    private $llavePrimaria = 'id_programas';
+    private $llavePrimaria = 'id_estado';
 
     private $es_vista = false;
 
@@ -13,7 +13,7 @@ class ModeloAcc_programa {
     }
 
     public function contarRegistros() {
-        $query = "SELECT COUNT(*) as total FROM acc_programa";
+        $query = "SELECT COUNT(*) as total FROM acc_estado";
         $stmt = $this->conexion->prepare($query);
         $stmt->execute();
         $resultado = $stmt->get_result();
@@ -21,16 +21,16 @@ class ModeloAcc_programa {
     }
 
     public function contarRegistrosPorBusqueda($termino) {
-        $query = "SELECT COUNT(*) as total FROM v_acc_programa WHERE ";
+        $query = "SELECT COUNT(*) as total FROM acc_estado WHERE ";
         $camposBusqueda = [];
-        $camposBusqueda[] = "`id_programas`";
-        $camposBusqueda[] = "`nombre_menu`";
-        $camposBusqueda[] = "`icono`";
-        $camposBusqueda[] = "`ruta`";
-        $camposBusqueda[] = "`nombre_archivo`";
-        $camposBusqueda[] = "`orden`";
+        $camposBusqueda[] = "`id_estado`";
+        $camposBusqueda[] = "`tabla`";
         $camposBusqueda[] = "`estado`";
-        $camposBusqueda[] = "`id_modulo`";
+        $camposBusqueda[] = "`nombre_estado`";
+        $camposBusqueda[] = "`visible`";
+        $camposBusqueda[] = "`orden`";
+        $camposBusqueda[] = "`fecha_creacion`";
+        $camposBusqueda[] = "`fecha_actualiza`";
         $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ?";
         $stmt = $this->conexion->prepare($query);
         $termino = "%" . $termino . "%";
@@ -40,10 +40,8 @@ class ModeloAcc_programa {
         return $resultado ? $resultado->fetch_assoc()['total'] : false;
     }
     public function obtenerTodos($registrosPorPagina, $offset) {
-        $query = "SELECT * FROM v_acc_programa";
-		$query .= " order by nombre_modulo, orden";
+        $query = "SELECT * FROM acc_estado";
         $query .= " LIMIT ? OFFSET ?";
-		
         $stmt = $this->conexion->prepare($query);
         $stmt->bind_param('ii', $registrosPorPagina, $offset);
         $stmt->execute();
@@ -52,7 +50,7 @@ class ModeloAcc_programa {
     }
 
     public function obtenerPorId($id) {
-        $query = "SELECT * FROM acc_programa WHERE $this->llavePrimaria = ?";
+        $query = "SELECT * FROM acc_estado WHERE $this->llavePrimaria = ?";
         $stmt = $this->conexion->prepare($query);
         $stmt->bind_param('i', $id);
         $stmt->execute();
@@ -66,44 +64,12 @@ class ModeloAcc_programa {
         $tipos = '';
         $params = [];
 
-        if (!empty($datos['nombre_menu'])) {
-          if (isset($datos['nombre_menu'])) {
-            $campos[] = '`nombre_menu`';
+        if (!empty($datos['tabla'])) {
+          if (isset($datos['tabla'])) {
+            $campos[] = '`tabla`';
             $valores[] = '?';
-            $params[] = $datos['nombre_menu'];
+            $params[] = $datos['tabla'];
             $tipos .= 's';
-           }
-        }
-        if (!empty($datos['icono'])) {
-          if (isset($datos['icono'])) {
-            $campos[] = '`icono`';
-            $valores[] = '?';
-            $params[] = $datos['icono'];
-            $tipos .= 's';
-           }
-        }
-        if (!empty($datos['ruta'])) {
-          if (isset($datos['ruta'])) {
-            $campos[] = '`ruta`';
-            $valores[] = '?';
-            $params[] = $datos['ruta'];
-            $tipos .= 's';
-           }
-        }
-        if (!empty($datos['nombre_archivo'])) {
-          if (isset($datos['nombre_archivo'])) {
-            $campos[] = '`nombre_archivo`';
-            $valores[] = '?';
-            $params[] = $datos['nombre_archivo'];
-            $tipos .= 's';
-           }
-        }
-        if (!empty($datos['orden'])) {
-          if (isset($datos['orden'])) {
-            $campos[] = '`orden`';
-            $valores[] = '?';
-            $params[] = $datos['orden'];
-            $tipos .= 'i';
            }
         }
         if (!empty($datos['estado'])) {
@@ -114,11 +80,27 @@ class ModeloAcc_programa {
             $tipos .= 's';
            }
         }
-        if (!empty($datos['id_modulo'])) {
-          if (isset($datos['id_modulo'])) {
-            $campos[] = '`id_modulo`';
+        if (!empty($datos['nombre_estado'])) {
+          if (isset($datos['nombre_estado'])) {
+            $campos[] = '`nombre_estado`';
             $valores[] = '?';
-            $params[] = $datos['id_modulo'];
+            $params[] = $datos['nombre_estado'];
+            $tipos .= 's';
+           }
+        }
+        if (!empty($datos['visible'])) {
+          if (isset($datos['visible'])) {
+            $campos[] = '`visible`';
+            $valores[] = '?';
+            $params[] = $datos['visible'];
+            $tipos .= 'i';
+           }
+        }
+        if (!empty($datos['orden'])) {
+          if (isset($datos['orden'])) {
+            $campos[] = '`orden`';
+            $valores[] = '?';
+            $params[] = $datos['orden'];
             $tipos .= 'i';
            }
         }
@@ -131,7 +113,7 @@ class ModeloAcc_programa {
            }
         }
 
-        $query = "INSERT INTO acc_programa (" . implode(', ', $campos) . ") VALUES (" . implode(', ', $valores) . ")";
+        $query = "INSERT INTO acc_estado (" . implode(', ', $campos) . ") VALUES (" . implode(', ', $valores) . ")";
         $stmt = $this->conexion->prepare($query);
         if (!empty($params)) {
             $stmt->bind_param($tipos, ...$params);
@@ -146,39 +128,11 @@ class ModeloAcc_programa {
         $tipos_pk = 'i'; // Para la llave primaria
         $params = [];
 
-        if (!empty($datos['nombre_menu'])) {
-            if (isset($datos['nombre_menu'])) {
-            $actualizaciones[] = "`nombre_menu` = ?";
-            $params[] = $datos['nombre_menu'];
+        if (!empty($datos['tabla'])) {
+            if (isset($datos['tabla'])) {
+            $actualizaciones[] = "`tabla` = ?";
+            $params[] = $datos['tabla'];
             $tipos .= 's';
-        }
-        }
-        if (!empty($datos['icono'])) {
-            if (isset($datos['icono'])) {
-            $actualizaciones[] = "`icono` = ?";
-            $params[] = $datos['icono'];
-            $tipos .= 's';
-        }
-        }
-        if (!empty($datos['ruta'])) {
-            if (isset($datos['ruta'])) {
-            $actualizaciones[] = "`ruta` = ?";
-            $params[] = $datos['ruta'];
-            $tipos .= 's';
-        }
-        }
-        if (!empty($datos['nombre_archivo'])) {
-            if (isset($datos['nombre_archivo'])) {
-            $actualizaciones[] = "`nombre_archivo` = ?";
-            $params[] = $datos['nombre_archivo'];
-            $tipos .= 's';
-        }
-        }
-        if (!empty($datos['orden'])) {
-            if (isset($datos['orden'])) {
-            $actualizaciones[] = "`orden` = ?";
-            $params[] = $datos['orden'];
-            $tipos .= 'i';
         }
         }
         if (!empty($datos['estado'])) {
@@ -188,10 +142,24 @@ class ModeloAcc_programa {
             $tipos .= 's';
         }
         }
-        if (!empty($datos['id_modulo'])) {
-            if (isset($datos['id_modulo'])) {
-            $actualizaciones[] = "`id_modulo` = ?";
-            $params[] = $datos['id_modulo'];
+        if (!empty($datos['nombre_estado'])) {
+            if (isset($datos['nombre_estado'])) {
+            $actualizaciones[] = "`nombre_estado` = ?";
+            $params[] = $datos['nombre_estado'];
+            $tipos .= 's';
+        }
+        }
+        if (!empty($datos['visible'])) {
+            if (isset($datos['visible'])) {
+            $actualizaciones[] = "`visible` = ?";
+            $params[] = $datos['visible'];
+            $tipos .= 'i';
+        }
+        }
+        if (!empty($datos['orden'])) {
+            if (isset($datos['orden'])) {
+            $actualizaciones[] = "`orden` = ?";
+            $params[] = $datos['orden'];
             $tipos .= 'i';
         }
         }
@@ -205,7 +173,7 @@ class ModeloAcc_programa {
 
         $params[] = $id;
         $tipos .= $tipos_pk;
-        $query = "UPDATE acc_programa SET " . implode(', ', $actualizaciones) . " WHERE $this->llavePrimaria = ?";
+        $query = "UPDATE acc_estado SET " . implode(', ', $actualizaciones) . " WHERE $this->llavePrimaria = ?";
         $stmt = $this->conexion->prepare($query);
         if (!empty($params)) {
             $stmt->bind_param($tipos, ...$params);
@@ -214,23 +182,22 @@ class ModeloAcc_programa {
     }
 
     public function eliminar($id) {
-        $query = "DELETE FROM acc_programa WHERE $this->llavePrimaria = ?";
+        $query = "DELETE FROM acc_estado WHERE $this->llavePrimaria = ?";
         $stmt = $this->conexion->prepare($query);
         $stmt->bind_param('i', $id);
         return $stmt->execute();
     }
     public function buscar($termino, $registrosPorPagina, $offset) {
-        $query = "SELECT * FROM v_acc_programa WHERE ";
+        $query = "SELECT * FROM acc_estado WHERE ";
         $camposBusqueda = [];
-        $camposBusqueda[] = "`id_programas`";
-        $camposBusqueda[] = "`nombre_menu`";
-        $camposBusqueda[] = "`icono`";
-        $camposBusqueda[] = "`ruta`";
-        $camposBusqueda[] = "`nombre_archivo`";
-        $camposBusqueda[] = "`orden`";
+        $camposBusqueda[] = "`id_estado`";
+        $camposBusqueda[] = "`tabla`";
+        $camposBusqueda[] = "`estado`";
         $camposBusqueda[] = "`nombre_estado`";
-        $camposBusqueda[] = "`nombre_modulo`";
+        $camposBusqueda[] = "`visible`";
+        $camposBusqueda[] = "`orden`";
         $camposBusqueda[] = "`fecha_creacion`";
+        $camposBusqueda[] = "`fecha_actualiza`";
         $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ? LIMIT ? OFFSET ?";
         $stmt = $this->conexion->prepare($query);
         $termino = "%" . $termino . "%";
@@ -241,19 +208,17 @@ class ModeloAcc_programa {
     }
     public function exportarDatos($termino = '') {
         try {
-            $query = "SELECT id_programas id, nombre_modulo Modulo, nombre_menu menu, icono, ruta, nombre_archivo, orden, nombre_estado Estado,  fecha_creacion FROM v_acc_programa WHERE ";
+            $query = "SELECT * FROM acc_estado WHERE ";
             $camposBusqueda = [];
-            $camposBusqueda[] = "`id_programas`";
-            $camposBusqueda[] = "`nombre_menu`";
-            $camposBusqueda[] = "`icono`";
-            $camposBusqueda[] = "`ruta`";
-            $camposBusqueda[] = "`nombre_archivo`";
-            $camposBusqueda[] = "`orden`";
+            $camposBusqueda[] = "`id_estado`";
+            $camposBusqueda[] = "`tabla`";
+            $camposBusqueda[] = "`estado`";
             $camposBusqueda[] = "`nombre_estado`";
-            $camposBusqueda[] = "`nombre_modulo`";
+            $camposBusqueda[] = "`visible`";
+            $camposBusqueda[] = "`orden`";
             $camposBusqueda[] = "`fecha_creacion`";
+            $camposBusqueda[] = "`fecha_actualiza`";
             $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ?";
-			$query .= " order by nombre_modulo, orden";
             if (!$this->conexion) {
                 throw new Exception('Error: No hay conexión a la base de datos');
             }
@@ -277,32 +242,6 @@ class ModeloAcc_programa {
             error_log('Error en exportarDatos: ' . $e->getMessage());
             return false;
         }
-    }
-	
-	public function obtenerEstados() {
-        $sql = "SELECT estado, nombre_estado FROM acc_estado where tabla = 'acc_programa' and visible = 1 order by orden"; // Asegúrate de que los nombres de las tablas y columnas sean correctos
-        $resultado = $this->conexion->query($sql);
-        $estados = [];
-
-        if ($resultado->num_rows > 0) {
-            while ($fila = $resultado->fetch_assoc()) {
-                $estados[] = $fila;
-            }
-        }
-        return $estados;
-    }
-	
-	public function obtenerModulos() {
-        $sql = "SELECT id_modulo, nombre_modulo FROM acc_modulo"; // Asegúrate de que los nombres de las tablas y columnas sean correctos
-        $resultado = $this->conexion->query($sql);
-        $modulos = [];
-
-        if ($resultado->num_rows > 0) {
-            while ($fila = $resultado->fetch_assoc()) {
-                $modulos[] = $fila;
-            }
-        }
-        return $modulos;
     }
 
 }

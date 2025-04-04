@@ -1,4 +1,5 @@
 <?php
+require_once '../verificar_sesion.php';
 require_once '../../<conexion.php>';
 require_once '../controladores/controller_roles_programas.php';
 

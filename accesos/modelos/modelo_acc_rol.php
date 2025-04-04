@@ -1,5 +1,5 @@
 <?php
-require_once '../../<conexion.php>';
+require_once '../../conexion.php';
 
 class ModeloAcc_rol {
     private $conexion;
@@ -21,11 +21,11 @@ class ModeloAcc_rol {
     }
 
     public function contarRegistrosPorBusqueda($termino) {
-        $query = "SELECT COUNT(*) as total FROM acc_rol WHERE ";
+        $query = "SELECT COUNT(*) as total FROM v_acc_rol WHERE ";
         $camposBusqueda = [];
         $camposBusqueda[] = "`id_rol`";
         $camposBusqueda[] = "`nombre_rol`";
-        $camposBusqueda[] = "`estado`";
+        $camposBusqueda[] = "`nombre_estado`";
         $camposBusqueda[] = "`fecha_creacion`";
         $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ?";
         $stmt = $this->conexion->prepare($query);
@@ -36,7 +36,7 @@ class ModeloAcc_rol {
         return $resultado ? $resultado->fetch_assoc()['total'] : false;
     }
     public function obtenerTodos($registrosPorPagina, $offset) {
-        $query = "SELECT * FROM acc_rol";
+        $query = "SELECT * FROM v_acc_rol";
         $query .= " LIMIT ? OFFSET ?";
         $stmt = $this->conexion->prepare($query);
         $stmt->bind_param('ii', $registrosPorPagina, $offset);
@@ -76,6 +76,14 @@ class ModeloAcc_rol {
             $tipos .= 's';
            }
         }
+        if (!empty($datos['fecha_actualiza'])) {
+          if (isset($datos['fecha_actualiza'])) {
+            $campos[] = '`fecha_actualiza`';
+            $valores[] = '?';
+            $params[] = $datos['fecha_actualiza'];
+            $tipos .= 's';
+           }
+        }
 
         $query = "INSERT INTO acc_rol (" . implode(', ', $campos) . ") VALUES (" . implode(', ', $valores) . ")";
         $stmt = $this->conexion->prepare($query);
@@ -106,6 +114,13 @@ class ModeloAcc_rol {
             $tipos .= 's';
         }
         }
+        if (!empty($datos['fecha_actualiza'])) {
+            if (isset($datos['fecha_actualiza'])) {
+            $actualizaciones[] = "`fecha_actualiza` = ?";
+            $params[] = $datos['fecha_actualiza'];
+            $tipos .= 's';
+        }
+        }
 
         $params[] = $id;
         $tipos .= $tipos_pk;
@@ -124,11 +139,11 @@ class ModeloAcc_rol {
         return $stmt->execute();
     }
     public function buscar($termino, $registrosPorPagina, $offset) {
-        $query = "SELECT * FROM acc_rol WHERE ";
+        $query = "SELECT * FROM v_acc_rol WHERE ";
         $camposBusqueda = [];
         $camposBusqueda[] = "`id_rol`";
         $camposBusqueda[] = "`nombre_rol`";
-        $camposBusqueda[] = "`estado`";
+        $camposBusqueda[] = "`nombre_estado`";
         $camposBusqueda[] = "`fecha_creacion`";
         $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ? LIMIT ? OFFSET ?";
         $stmt = $this->conexion->prepare($query);
@@ -140,11 +155,11 @@ class ModeloAcc_rol {
     }
     public function exportarDatos($termino = '') {
         try {
-            $query = "SELECT * FROM acc_rol WHERE ";
+            $query = "SELECT * FROM v_acc_rol WHERE ";
             $camposBusqueda = [];
             $camposBusqueda[] = "`id_rol`";
             $camposBusqueda[] = "`nombre_rol`";
-            $camposBusqueda[] = "`estado`";
+            $camposBusqueda[] = "`nombre_estado`";
             $camposBusqueda[] = "`fecha_creacion`";
             $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ?";
             if (!$this->conexion) {
@@ -171,6 +186,19 @@ class ModeloAcc_rol {
             return false;
         }
     }
+
+    public function obtenerEstados() {
+        $sql = "SELECT estado, nombre_estado FROM acc_estado where tabla = 'acc_rol' and visible = 1 order by orden"; // Asegúrate de que los nombres de las tablas y columnas sean correctos
+        $resultado = $this->conexion->query($sql);
+        $estados = [];
+
+        if ($resultado->num_rows > 0) {
+            while ($fila = $resultado->fetch_assoc()) {
+                $estados[] = $fila;
+            }
+        }
+        return $estados;
+    } 
 
 }
 ?>

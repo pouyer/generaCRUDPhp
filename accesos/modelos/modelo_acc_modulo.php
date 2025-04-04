@@ -1,5 +1,5 @@
 <?php
-require_once '../../<conexion.php>';
+require_once '../../conexion.php';
 
 class ModeloAcc_modulo {
     private $conexion;
@@ -21,13 +21,13 @@ class ModeloAcc_modulo {
     }
 
     public function contarRegistrosPorBusqueda($termino) {
-        $query = "SELECT COUNT(*) as total FROM acc_modulo WHERE ";
+        $query = "SELECT COUNT(*) as total FROM v_acc_modulo WHERE ";
         $camposBusqueda = [];
         $camposBusqueda[] = "`id_modulo`";
         $camposBusqueda[] = "`nombre_modulo`";
+        $camposBusqueda[] = "`icono`";
         $camposBusqueda[] = "`orden`";
-        $camposBusqueda[] = "`estado`";
-        $camposBusqueda[] = "`fecha_creacion`";
+        $camposBusqueda[] = "`nombre_estado`";
         $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ?";
         $stmt = $this->conexion->prepare($query);
         $termino = "%" . $termino . "%";
@@ -37,7 +37,7 @@ class ModeloAcc_modulo {
         return $resultado ? $resultado->fetch_assoc()['total'] : false;
     }
     public function obtenerTodos($registrosPorPagina, $offset) {
-        $query = "SELECT * FROM acc_modulo";
+        $query = "SELECT * FROM v_acc_modulo";
         $query .= " LIMIT ? OFFSET ?";
         $stmt = $this->conexion->prepare($query);
         $stmt->bind_param('ii', $registrosPorPagina, $offset);
@@ -69,6 +69,14 @@ class ModeloAcc_modulo {
             $tipos .= 's';
            }
         }
+        if (!empty($datos['icono'])) {
+          if (isset($datos['icono'])) {
+            $campos[] = '`icono`';
+            $valores[] = '?';
+            $params[] = $datos['icono'];
+            $tipos .= 's';
+           }
+        }
         if (!empty($datos['orden'])) {
           if (isset($datos['orden'])) {
             $campos[] = '`orden`';
@@ -82,6 +90,14 @@ class ModeloAcc_modulo {
             $campos[] = '`estado`';
             $valores[] = '?';
             $params[] = $datos['estado'];
+            $tipos .= 's';
+           }
+        }
+        if (!empty($datos['fecha_actualiza'])) {
+          if (isset($datos['fecha_actualiza'])) {
+            $campos[] = '`fecha_actualiza`';
+            $valores[] = '?';
+            $params[] = $datos['fecha_actualiza'];
             $tipos .= 's';
            }
         }
@@ -108,6 +124,13 @@ class ModeloAcc_modulo {
             $tipos .= 's';
         }
         }
+        if (!empty($datos['icono'])) {
+            if (isset($datos['icono'])) {
+            $actualizaciones[] = "`icono` = ?";
+            $params[] = $datos['icono'];
+            $tipos .= 's';
+        }
+        }
         if (!empty($datos['orden'])) {
             if (isset($datos['orden'])) {
             $actualizaciones[] = "`orden` = ?";
@@ -119,6 +142,13 @@ class ModeloAcc_modulo {
             if (isset($datos['estado'])) {
             $actualizaciones[] = "`estado` = ?";
             $params[] = $datos['estado'];
+            $tipos .= 's';
+        }
+        }
+        if (!empty($datos['fecha_actualiza'])) {
+            if (isset($datos['fecha_actualiza'])) {
+            $actualizaciones[] = "`fecha_actualiza` = ?";
+            $params[] = $datos['fecha_actualiza'];
             $tipos .= 's';
         }
         }
@@ -140,13 +170,13 @@ class ModeloAcc_modulo {
         return $stmt->execute();
     }
     public function buscar($termino, $registrosPorPagina, $offset) {
-        $query = "SELECT * FROM acc_modulo WHERE ";
+        $query = "SELECT * FROM v_acc_modulo WHERE ";
         $camposBusqueda = [];
         $camposBusqueda[] = "`id_modulo`";
         $camposBusqueda[] = "`nombre_modulo`";
+        $camposBusqueda[] = "`icono`";
         $camposBusqueda[] = "`orden`";
         $camposBusqueda[] = "`estado`";
-        $camposBusqueda[] = "`fecha_creacion`";
         $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ? LIMIT ? OFFSET ?";
         $stmt = $this->conexion->prepare($query);
         $termino = "%" . $termino . "%";
@@ -157,12 +187,13 @@ class ModeloAcc_modulo {
     }
     public function exportarDatos($termino = '') {
         try {
-            $query = "SELECT * FROM acc_modulo WHERE ";
+            $query = "SELECT * FROM v_acc_modulo WHERE ";
             $camposBusqueda = [];
             $camposBusqueda[] = "`id_modulo`";
             $camposBusqueda[] = "`nombre_modulo`";
+            $camposBusqueda[] = "`icono`";
             $camposBusqueda[] = "`orden`";
-            $camposBusqueda[] = "`estado`";
+            $camposBusqueda[] = "`nombre_estado`";
             $camposBusqueda[] = "`fecha_creacion`";
             $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ?";
             if (!$this->conexion) {
@@ -188,6 +219,19 @@ class ModeloAcc_modulo {
             error_log('Error en exportarDatos: ' . $e->getMessage());
             return false;
         }
+    }
+	
+	public function obtenerEstados() {
+        $sql = "SELECT estado, nombre_estado FROM acc_estado where tabla = 'acc_modulo' and visible = 1 order by orden"; // Asegúrate de que los nombres de las tablas y columnas sean correctos
+        $resultado = $this->conexion->query($sql);
+        $estados = [];
+
+        if ($resultado->num_rows > 0) {
+            while ($fila = $resultado->fetch_assoc()) {
+                $estados[] = $fila;
+            }
+        }
+        return $estados;
     }
 
 }

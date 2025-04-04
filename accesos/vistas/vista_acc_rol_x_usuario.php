@@ -1,4 +1,5 @@
 <?php
+require_once '../verificar_sesion.php';
     $registrosPorPagina = isset($_GET['registrosPorPagina']) ? (int)$_GET['registrosPorPagina'] : 10;
     $paginaActual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
 ?>

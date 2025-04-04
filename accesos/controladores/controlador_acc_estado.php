@@ -1,12 +1,12 @@
 <?php
-require_once '../modelos/modelo_acc_modulo.php';
+require_once '../modelos/modelo_acc_estado.php';
 
-class ControladorAcc_modulo {
+class ControladorAcc_estado {
     private $modelo;
     private $es_vista;
 
     public function __construct() {
-        $this->modelo = new ModeloAcc_modulo();
+        $this->modelo = new ModeloAcc_estado();
         $this->es_vista = false;
     }
 
@@ -51,7 +51,7 @@ class ControladorAcc_modulo {
             }
 
             $timestamp = date('Y-m-d_H-i-s');
-            $filename = "acc_modulo_export_{$timestamp}";
+            $filename = "acc_estado_export_{$timestamp}";
             if (!empty($termino)) {
                 $filename .= "_busqueda_" . preg_replace('/[^a-zA-Z0-9]/', '_', $termino);
             }
@@ -123,15 +123,11 @@ class ControladorAcc_modulo {
             }
         }
     }
-	
-	public function obtenerEstado() {
-        return $this->modelo->obtenerEstados();
-    }
 
 }
 
 $accion = $_GET['action'] ?? '';
-$controlador = new ControladorAcc_modulo();
+$controlador = new ControladorAcc_estado();
 
 switch ($accion) {
     case 'crear':
@@ -141,9 +137,9 @@ switch ($accion) {
         break;
 
     case 'actualizar':
-        $id = $_POST['id_modulo']; // Usar el campo de llave primaria
+        $id = $_POST['id_estado']; // Usar el campo de llave primaria
         $datos = $_POST;
-        unset($datos['id_modulo']); // Eliminar el ID de los datos
+        unset($datos['id_estado']); // Eliminar el ID de los datos
         $resultado = $controlador->actualizar($id, $datos);
         echo json_encode($resultado);
         break;
@@ -163,7 +159,7 @@ switch ($accion) {
         $totalPaginas = ceil($totalRegistros / $registrosPorPagina); // Calcular total de páginas
         $resultado = $controlador->buscar($termino, $registrosPorPagina, $offset);
         // Aquí debes incluir la vista con los resultados
-        include '../vistas/vista_acc_modulo.php'; // Incluir la vista correspondiente
+        include '../vistas/vista_acc_estado.php'; // Incluir la vista correspondiente
         break;
 
     case 'exportar':
@@ -176,7 +172,6 @@ switch ($accion) {
         $paginaActual = (int)($_GET['pagina'] ?? 1); // Asegúrate de que sea un entero
         $offset = ($paginaActual - 1) * $registrosPorPagina; // Calcular el offset
         $registros = $controlador->obtenerTodos($registrosPorPagina, $paginaActual);
-		$estados = $controlador->obtenerEstado(); // Agregar esta línea
-        include '../vistas/vista_acc_modulo.php'; // Incluir la vista correspondiente
+        include '../vistas/vista_acc_estado.php'; // Incluir la vista correspondiente
         break;
 }
