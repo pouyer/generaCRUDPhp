@@ -29,11 +29,6 @@ include "../include/funciones_utilidades.php";
         return $response; // Devolver la respuesta
     }
    
-    function crearArchivo($archivo, $contenido) {
-        $fp = fopen($archivo, 'w');
-        fwrite($fp, $contenido);
-        fclose($fp);
-    }
 
     function genera_configuracion($nombreproyecto, $rutaBase, $proyecto) {
         // Verificar si la carpeta 'config' existe, si no, crearla

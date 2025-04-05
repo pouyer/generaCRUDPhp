@@ -9,6 +9,7 @@ $mensaje = '';
 $baseDatos = '';
 $ruta = '';
 $nombre_archivo = '';
+$nombre_proyecto = '';
 
 // Capturar y guardar en sesión los valores de ruta, nombre_archivo y nombre_proyecto cuando se ingresan
 if (isset($_POST['ruta'])) {
@@ -34,10 +35,11 @@ if (isset($_POST['generar_crud'])) {
     $baseDatos = isset($_POST['base_datos']) ? $_POST['base_datos'] : '';
     $ruta = isset($_POST['ruta']) ? normalizar_ruta($_POST['ruta']) : '';
     $nombre_archivo = isset($_POST['nombre_archivo']) ? $_POST['nombre_archivo'] : '';
+    $nombre_proyecto = isset($_POST['nombre_proyecto']) ? $_POST['nombre_proyecto'] : '';
     
     // Validar que los campos requeridos no estén vacíos
     if (empty($baseDatos) || empty($ruta) || empty($nombre_archivo)) {
-        $mensaje = "Error: Todos los campos son requeridos";
+        $mensaje = "Error: los campos  base_datos, ruta y nombre_archivo son requeridos";
     } else {
         // Validar la ruta
         $validacion = validar_ruta($ruta);
@@ -228,7 +230,7 @@ if (isset($_POST['mostrar_tablas']) || isset($_POST['base_datos'])) {
 ?>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function setRuta() {
@@ -357,9 +359,14 @@ if (isset($_POST['mostrar_tablas']) || isset($_POST['base_datos'])) {
             console.log("Base de datos:", base_datos);
             console.log("Nombre del proyecto:", nombre_proyecto);
 
+            
             // Verificar que la ruta, el archivo y la base de datos no estén vacíos
-            if (!ruta || !nombre_archivo || !base_datos || !nombre_proyecto) { // Validar nombre_proyecto
-                alert('Por favor, ingrese la ruta del proyecto, el nombre del archivo de conexión, el nombre del proyecto y seleccione una base de datos.');
+            if (!ruta || !nombre_archivo || !base_datos ) { 
+                alert('Por favor, complete los siguientes campos:\n' +
+          'Ruta: ' + (ruta || 'No especificada') + '\n' +
+          'Nombre de archivo: ' + (nombre_archivo || 'No especificado') + '\n' +
+          'Base de datos: ' + (base_datos || 'No especificada')+ '\n' +
+          'Nombre del proyecto: ' + (nombre_proyecto || 'No especificado'));
                 return;
             }
 

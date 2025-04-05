@@ -101,4 +101,10 @@ function listarArchivos($directorio, $patron) {
     return $archivos;
 }
 
+function crearArchivo($archivo, $contenido) {
+    $fp = fopen($archivo, 'w');
+    fwrite($fp, $contenido);
+    fclose($fp);
+}
+
 ?>

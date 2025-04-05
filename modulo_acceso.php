@@ -94,9 +94,10 @@ function ejecutar_script_sql($conexion, $archivo_sql) {
                         <small class="text-muted">Configura el menú de navegación principal usando el Modulo de Accesos</small>
                     </a>
 
-                    <a href="#" onclick="crearPantallaLogin()" class="list-group-item list-group-item-action disabled" aria-disabled="true">    
+                   <!-- <a href="#" onclick="crearPantallaLogin()" class="list-group-item list-group-item-action disabled" aria-disabled="true">    -->
+                   <a href="#" onclick="crearPantallaLogin()" class="list-group-item list-group-item-action ">    
                         <h5 class="mb-1 icon-login">Crear Pantalla de Login</h5>
-                        <small class="text-muted">Genera la página de inicio de sesión</small>
+                        <small class="text-muted">Genera la página de Login con control de usuario para inicio de sesión</small>
                     </a>
                     
                     <a href="accesos/llenar_programas.php" class="list-group-item list-group-item-action">
@@ -108,8 +109,15 @@ function ejecutar_script_sql($conexion, $archivo_sql) {
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script> 
+    <footer class="mt-4">
+        <div class="text-center">
+            <p>&copy; <?php echo date("Y"); ?> PouyedDev. Todos los derechos reservados. (V 0.5.0)</p>
+        </div>
+    </footer>
+  
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js'></script>
+ 
     <script>
         // Verificar si existe la ruta al cargar la página
         $(document).ready(function() {

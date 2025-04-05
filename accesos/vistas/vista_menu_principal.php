@@ -7,7 +7,7 @@
  * Desarrollado por Carlos Mejia
  * 2024-12-06
  * Version 0.4.0
- * 
+ *  
  */
 require_once '../verificar_sesion.php';
 require_once '../../config/config.php'; // Incluir archivo de configuración
@@ -27,7 +27,7 @@ require_once '../../config/config.php'; // Incluir archivo de configuración
 <div class="header-container">
         <div class="container">
             <div class="user-info">
-                <h2 class="welcome-text">Bienvenido, <?php echo htmlspecialchars($usuario_nombre); ?></h2>
+                <h2 class="welcome-text">Bienvenido, <?php echo htmlspecialchars($usuario_nombre); ?></h2> 
                 <a href="../controladores/controlador_login.php?action=logout" class="btn btn-danger logout-btn">
                     <i class="icon-logout"></i> Cerrar Sesión
                 </a>
@@ -43,7 +43,7 @@ require_once '../../config/config.php'; // Incluir archivo de configuración
                 <?php
                 require_once '../modelos/modelo_menu_principal.php';
                 $modelo = new ModeloMenu();
-                $modulos = $modelo->obtenerModulos(); // Método que obtiene los módulos
+                $modulos = $modelo->obtenerModulos($usuario_id); // Método que obtiene los módulos
 
                 foreach ($modulos as $index => $modulo): ?>
                     <li class="list-group-item">
@@ -57,7 +57,7 @@ require_once '../../config/config.php'; // Incluir archivo de configuración
                         <ul class="nested-nav">
                             <?php
                             // Obtener los menús para el módulo actual
-                            $menus = $modelo->obtenerMenusPorModulo($modulo['modulo']);
+                            $menus = $modelo->obtenerMenusPorModulo($modulo['modulo'], $usuario_id);
                             if (empty($menus)): ?>
                                 <li>No hay menús disponibles para este módulo.</li>
                             <?php else:

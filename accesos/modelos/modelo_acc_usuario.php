@@ -258,5 +258,138 @@ class ModeloAcc_usuario {
         return $stmt->execute();
     }
 
+        // Funciones nuevas para login
+        public function obtenerPorUsername($username) {
+            $query = "SELECT * FROM acc_usuario WHERE username = ?";
+            $stmt = $this->conexion->prepare($query);
+            $stmt->bind_param('s', $username);
+            $stmt->execute();
+            $resultado = $stmt->get_result();
+            return $resultado ? $resultado->fetch_assoc() : false;
+        }
+    
+        public function obtenerPorCorreo($correo) {
+            $query = "SELECT * FROM acc_usuario WHERE correo = ?";
+            $stmt = $this->conexion->prepare($query);
+            $stmt->bind_param('s', $correo);
+            $stmt->execute();
+            $resultado = $stmt->get_result();
+            return $resultado ? $resultado->fetch_assoc() : false;
+        }
+    
+        public function verificarCredenciales($username, $password) {
+            $query = "SELECT * FROM acc_usuario WHERE username = ? AND password = ? AND estado = 'A'";
+            $stmt = $this->conexion->prepare($query);
+            $stmt->bind_param('ss', $username, $password);
+            $stmt->execute();
+            $resultado = $stmt->get_result();
+            return $resultado ? $resultado->fetch_assoc() : false;
+        }
+    
+        public function generarNuevaPassword() {
+            $caracteres = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+-*/#$%&@.:,;';
+            $longitud = 8;
+            $nueva_clave = '';
+            for ($i = 0; $i < $longitud; $i++) {
+                $nueva_clave .= $caracteres[rand(0, strlen($caracteres) - 1)];
+            }
+            return $nueva_clave;
+        }
+    
+        public function restablecerPassword($usuario_o_correo) {
+            // Verificar si es un usuario o correo
+            $usuario = $this->obtenerPorUsername($usuario_o_correo);
+            if (!$usuario) {
+                $usuario = $this->obtenerPorCorreo($usuario_o_correo);
+            }
+            
+            if (!$usuario) {
+                return false; // No se encontró el usuario o correo
+            }
+            
+            // Generar nueva contraseña
+            $nueva_clave = $this->generarNuevaPassword();
+            
+            // Actualizar en la base de datos con la nueva contraseña
+            $datos = [
+                'username' => $usuario['username'],
+                'fullname' => $usuario['fullname'],
+                'correo' => $usuario['correo'],
+                'password' => $nueva_clave,
+                'estado' => $usuario['estado'],
+                'cambio_clave_obligatorio' => 'S' // Añadir marcador para cambio obligatorio
+            ];
+            
+            // Actualizar datos del usuario con nueva contraseña y marcador de cambio obligatorio
+            $this->actualizarDatosRestablecer($usuario['id_usuario'], $datos);
+            
+            return [
+                'correo' => $usuario['correo'],
+                'username' => $usuario['username'],
+                'fullname' => $usuario['fullname'],
+                'nueva_clave' => $nueva_clave
+            ];
+        }
+        
+        public function actualizarDatosRestablecer($id, $datos) {
+            $actualizaciones = [];
+            $tipos = '';
+            $tipos_pk = 'i'; // Para la llave primaria
+            $params = [];
+    
+            $actualizaciones[] = "`password` = ?";
+            $params[] = $datos['password'];
+            $tipos .= 's';
+            
+            $actualizaciones[] = "`cambio_clave_obligatorio` = ?";
+            $params[] = 'S';  // S = Sí, debe cambiar la clave
+            $tipos .= 's';
+    
+            $params[] = $id;
+            $tipos .= $tipos_pk;
+            
+            $query = "UPDATE acc_usuario SET " . implode(', ', $actualizaciones) . " WHERE $this->llavePrimaria = ?";
+            $stmt = $this->conexion->prepare($query);
+            if (!empty($params)) {
+                $stmt->bind_param($tipos, ...$params);
+            }
+            return $stmt->execute();
+        }
+        
+        public function cambiarPassword($id_usuario, $nueva_password) {
+            $actualizaciones = [];
+            $tipos = '';
+            $tipos_pk = 'i'; // Para la llave primaria
+            $params = [];
+    
+            $actualizaciones[] = "`password` = ?";
+            $params[] = $nueva_password;
+            $tipos .= 's';
+            
+            $actualizaciones[] = "`cambio_clave_obligatorio` = ?";
+            $params[] = 'N';  // N = No es necesario cambiar la clave
+            $tipos .= 's';
+    
+            $params[] = $id_usuario;
+            $tipos .= $tipos_pk;
+            
+            $query = "UPDATE acc_usuario SET " . implode(', ', $actualizaciones) . " WHERE $this->llavePrimaria = ?";
+            $stmt = $this->conexion->prepare($query);
+            if (!empty($params)) {
+                $stmt->bind_param($tipos, ...$params);
+            }
+            return $stmt->execute();
+        }
+        
+        public function requiereCambioPassword($id_usuario) {
+            $query = "SELECT cambio_clave_obligatorio FROM acc_usuario WHERE $this->llavePrimaria = ?";
+            $stmt = $this->conexion->prepare($query);
+            $stmt->bind_param('i', $id_usuario);
+            $stmt->execute();
+            $resultado = $stmt->get_result();
+            $data = $resultado ? $resultado->fetch_assoc() : false;
+            return ($data && $data['cambio_clave_obligatorio'] === 'S');
+        }
+
 }
 ?>

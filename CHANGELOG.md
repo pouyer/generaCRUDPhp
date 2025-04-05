@@ -7,7 +7,13 @@
 
 Este archivo documenta los cambios más relevantes realizados en el proyecto **generaCRUDPhp**.
 
-## [0.4.0] - 2025-04-04
+## [0.5.0] - 2025-04-04
+### Cambios
+- Implementacion de generacion pantalla de Login 
+- Creacion Registrar usuario 
+- Restablecer contraseña
+
+## [0.4.0] - 2025-03-04
 ### Cambios
 - Migración completa a **Bootstrap 5**.
 - Eliminación de dependencias de **jQuery**.
