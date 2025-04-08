@@ -254,7 +254,7 @@ class ControladorLogin {
         // Obtener usuario para verificar la contraseña actual
         \$usuario = \$this->modelo->obtenerPorId(\$id_usuario);
         
-        if (!\$usuario || \$usuario['password'] !== \$password_actual) {
+        if (!\$usuario || \$usuario['password'] !== md5(\$password_actual)) {
             return ['exito' => false, 'mensaje' => 'La contraseña actual es incorrecta'];
         }
         

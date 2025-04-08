@@ -21,14 +21,13 @@ class ModeloAcc_usuario {
     }
 
     public function contarRegistrosPorBusqueda($termino) {
-        $query = "SELECT COUNT(*) as total FROM acc_usuario WHERE ";
+        $query = "SELECT COUNT(*) as total FROM v_acc_usuario WHERE ";
         $camposBusqueda = [];
         $camposBusqueda[] = "`id_usuario`";
         $camposBusqueda[] = "`username`";
         $camposBusqueda[] = "`fullname`";
         $camposBusqueda[] = "`correo`";
-        $camposBusqueda[] = "`password`";
-        $camposBusqueda[] = "`estado`";
+        $camposBusqueda[] = "`nombre_estado`";
         $camposBusqueda[] = "`fecha_creacion`";
         $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ?";
         $stmt = $this->conexion->prepare($query);
@@ -90,7 +89,7 @@ class ModeloAcc_usuario {
         if (!empty($datos['password'])) {
           if (isset($datos['password'])) {
             $campos[] = '`password`';
-            $valores[] = '?';
+            $valores[] = 'md5(?)';
             $params[] = $datos['password'];
             $tipos .= 's';
            }
@@ -142,7 +141,7 @@ class ModeloAcc_usuario {
         }
         if (!empty($datos['password'])) {
             if (isset($datos['password'])) {
-            $actualizaciones[] = "`password` = ?";
+            $actualizaciones[] = "`password` = md5(?)";
             $params[] = $datos['password'];
             $tipos .= 's';
         }
@@ -172,14 +171,13 @@ class ModeloAcc_usuario {
         return $stmt->execute();
     }
     public function buscar($termino, $registrosPorPagina, $offset) {
-        $query = "SELECT * FROM acc_usuario WHERE ";
+        $query = "SELECT * FROM v_acc_usuario WHERE ";
         $camposBusqueda = [];
         $camposBusqueda[] = "`id_usuario`";
         $camposBusqueda[] = "`username`";
         $camposBusqueda[] = "`fullname`";
         $camposBusqueda[] = "`correo`";
-        $camposBusqueda[] = "`password`";
-        $camposBusqueda[] = "`estado`";
+        $camposBusqueda[] = "`estado_nombre`";
         $camposBusqueda[] = "`fecha_creacion`";
         $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ? LIMIT ? OFFSET ?";
         $stmt = $this->conexion->prepare($query);
@@ -191,14 +189,13 @@ class ModeloAcc_usuario {
     }
     public function exportarDatos($termino = '') {
         try {
-            $query = "SELECT * FROM acc_usuario WHERE ";
+            $query = "SELECT * FROM v_acc_usuario WHERE ";
             $camposBusqueda = [];
             $camposBusqueda[] = "`id_usuario`";
             $camposBusqueda[] = "`username`";
             $camposBusqueda[] = "`fullname`";
             $camposBusqueda[] = "`correo`";
-            $camposBusqueda[] = "`password`";
-            $camposBusqueda[] = "`estado`";
+            $camposBusqueda[] = "`estado_nombre`";
             $camposBusqueda[] = "`fecha_creacion`";
             $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ?";
             if (!$this->conexion) {
@@ -278,7 +275,7 @@ class ModeloAcc_usuario {
         }
     
         public function verificarCredenciales($username, $password) {
-            $query = "SELECT * FROM acc_usuario WHERE username = ? AND password = ? AND estado = 'A'";
+            $query = "SELECT * FROM acc_usuario WHERE username = ? AND password = md5(?) AND estado = 'A'";
             $stmt = $this->conexion->prepare($query);
             $stmt->bind_param('ss', $username, $password);
             $stmt->execute();
@@ -337,7 +334,7 @@ class ModeloAcc_usuario {
             $tipos_pk = 'i'; // Para la llave primaria
             $params = [];
     
-            $actualizaciones[] = "`password` = ?";
+            $actualizaciones[] = "`password` = md5(?)";
             $params[] = $datos['password'];
             $tipos .= 's';
             
@@ -362,7 +359,7 @@ class ModeloAcc_usuario {
             $tipos_pk = 'i'; // Para la llave primaria
             $params = [];
     
-            $actualizaciones[] = "`password` = ?";
+            $actualizaciones[] = "`password` = md5(?)";
             $params[] = $nueva_password;
             $tipos .= 's';
             

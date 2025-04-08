@@ -7,6 +7,11 @@
 
 Este archivo documenta los cambios más relevantes realizados en el proyecto **generaCRUDPhp**.
 
+## [0.5.1] - 2025-04-05
+### Cambios
+- Corrige bug de nombre del proyecto
+- Implementa seguridad en el Pasword
+
 ## [0.5.0] - 2025-04-04
 ### Cambios
 - Implementacion de generacion pantalla de Login 

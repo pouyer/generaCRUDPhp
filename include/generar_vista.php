@@ -13,7 +13,7 @@ function generar_vista($tabla, $campos, $directorio, $es_vista) {
  * 
  */\n";
     $contenido .= "require_once '../accesos/verificar_sesion.php';\n";
-    $contenido .= "    \$registrosPorPagina = isset(\$_GET['registrosPorPagina']) ? (int)\$_GET['registrosPorPagina'] : 10;\n";
+    $contenido .= "    \$registrosPorPagina = isset(\$_GET['registrosPorPagina']) ? (int)\$_GET['registrosPorPagina'] : 15;\n";
     $contenido .= "    \$paginaActual = isset(\$_GET['pagina']) ? (int)\$_GET['pagina'] : 1;\n";
     $contenido .= "?>\n";
     $contenido .= "<!DOCTYPE html>\n";
@@ -88,7 +88,7 @@ function generar_vista($tabla, $campos, $directorio, $es_vista) {
     $contenido .= "                require_once '../modelos/modelo_$tabla.php';\n";
     $contenido .= "                \$modelo = new Modelo$nombreClase();\n";
     $contenido .= "                \$termino = \$_GET['busqueda'] ?? ''; // Inicializar la variable \$termino\n";
-    $contenido .= "                \$registrosPorPagina = isset(\$_GET['registrosPorPagina']) ? (int)\$_GET['registrosPorPagina'] : 10;\n";
+    $contenido .= "                \$registrosPorPagina = isset(\$_GET['registrosPorPagina']) ? (int)\$_GET['registrosPorPagina'] : 15;\n";
     $contenido .= "                \$paginaActual = isset(\$_GET['pagina']) ? (int)\$_GET['pagina'] : 1;\n";
     $contenido .= " 			   \$offset = (\$paginaActual - 1) * \$registrosPorPagina; // Calcular el offset para la paginación\n";
     $contenido .= "				   	// Verifica si se está realizando una búsqueda \n"; 
