@@ -14,7 +14,7 @@ require_once '../verificar_sesion.php';
 </head>
 <body>
     <div class="container">
-        <h1 class="text-center">Acc_rol_x_usuario</h1>
+        <h1 class="text-center">Rol x Usuario</h1>
         <div class="d-flex justify-content-between mb-3">
             <button class="btn btn-primary" data-toggle="modal" data-target="#modalCrear">Crear</button>
             <div class="btn-group">

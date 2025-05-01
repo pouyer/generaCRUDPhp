@@ -38,7 +38,7 @@ require_once '../../config/config.php'; // Incluir archivo de configuración
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-2 menu-fondo">
-            <h2 class="text-center">Menu Principal</h2>
+            <h2 class="text-center">**Menu Principal**</h2>
             <ul class="list-group">
                 <?php
                 require_once '../modelos/modelo_menu_principal.php';
@@ -50,7 +50,7 @@ require_once '../../config/config.php'; // Incluir archivo de configuración
                       <!--  <strong class="accordion-button" onclick="toggleMenu(this)"><?php echo htmlspecialchars($modulo['modulo']); ?></strong>  -->
                         <!-- Cambié el icono a un <i> para que se vea mejor -->
                         <strong class="accordion-button" onclick="toggleMenu(this)">
-                            <i class="<?php echo htmlspecialchars($modulo['icono_modulo']); ?>"> . </i> <!-- Mostrar el icono -->
+                            <i class="<?php echo htmlspecialchars($modulo['icono_modulo']); ?>">&nbsp;</i> <!-- Mostrar el icono -->
                             <?php echo htmlspecialchars($modulo['modulo']); ?>
                         </strong>
                         

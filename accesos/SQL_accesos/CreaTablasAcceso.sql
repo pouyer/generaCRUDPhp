@@ -1,7 +1,6 @@
 
 SET FOREIGN_KEY_CHECKS = 0;
 SET SQL_MODE = '';
-
 DROP VIEW IF EXISTS `v_acc_menu`;
 DROP VIEW IF EXISTS `v_acc_programa`;
 DROP VIEW IF EXISTS `v_acc_modulo`;
@@ -134,7 +133,6 @@ WHERE `nombre_rol` IN ('Super Administrador', 'Administrador Accesos')
  order by `r`.`id_rol`, `id_programas`;
 
 
-
 CREATE VIEW `v_acc_menu` AS
        SELECT DISTINCT
         `p`.`nombre_menu` AS `nombre_menu`,
@@ -168,10 +166,11 @@ CREATE VIEW `v_acc_programa` AS
         `p`.`id_modulo` AS `id_modulo`,
         `p`.`orden` AS `orden`,
         `p`.`estado` AS `estado`,
-        ifnull((select `e`.`nombre_estado` from `acc_estado` `e` where `e`.`tabla` = 'acc_programa' and `e`.`estado` = `p`.`estado`),`p`.`estado`) AS `nombre_estado`,
+        IFNULL(s.nombre_estado,p.estado) AS nombre_estado,
         `m`.`nombre_modulo` AS `nombre_modulo`,
         `p`.`fecha_creacion` AS `fecha_creacion`
      from (`acc_programa` `p` 
+		left join  acc_estado s on (s.tabla = 'acc_programa' and s.estado = p.estado)
         left join `acc_modulo` `m` on(`m`.`id_modulo` = `p`.`id_modulo`)) 
      order by `nombre_menu`   ; 
 
@@ -182,9 +181,10 @@ CREATE VIEW `v_acc_modulo` AS
         `m`.`icono` AS `icono`,
         `m`.`orden` AS `orden`,
         `m`.`estado` AS `estado`,
-        ifnull((select `e`.`nombre_estado` from `acc_estado` `e` where `e`.`tabla` = 'acc_modulo' and `e`.`estado` = `m`.`estado`),`m`.`estado`) AS `nombre_estado`,
+        IFNULL(s.nombre_estado,m.estado) AS nombre_estado,
         `m`.`fecha_creacion` AS `fecha_creacion` 
     from `acc_modulo` `m` 
+	  left join  acc_estado s on (s.tabla = 'acc_modulo' and s.estado = m.estado)
     order by `nombre_modulo` ;
 
 CREATE VIEW `v_acc_rol` AS
@@ -192,9 +192,10 @@ CREATE VIEW `v_acc_rol` AS
         `r`.`id_rol` AS `id_rol`,
         `r`.`nombre_rol` AS `nombre_rol`,
         `r`.`estado` AS `estado`,
-        ifnull((select `e`.`nombre_estado` from `acc_estado` `e` where `e`.`tabla` = 'acc_rol' and `e`.`estado` = `r`.`estado`),`r`.`estado`) AS `nombre_estado`,
+        IFNULL(s.nombre_estado,`r`.`estado`) AS nombre_estado,
         `r`.`fecha_creacion` AS `fecha_creacion`
      from `acc_rol` `r`
+	 left join  acc_estado s on (s.tabla = 'acc_rol' and s.estado = r.estado)
      order by `nombre_rol` ;
 
 CREATE VIEW `v_acc_usuario` AS
@@ -205,9 +206,10 @@ CREATE VIEW `v_acc_usuario` AS
         `u`.`correo` AS `correo`,
         `u`.`password` AS `password`,
         `u`.`estado` AS `estado`,
-        ifnull((select `e`.`nombre_estado` from `acc_estado` `e` where `e`.`tabla` = 'acc_usuario' and `e`.`estado` = `u`.`estado`),`u`.`estado`) AS `nombre_estado`,
+        IFNULL(s.nombre_estado,u.estado) AS nombre_estado,
         `u`.`fecha_creacion` AS `fecha_creacion` 
     from `acc_usuario` `u` 
+	left join  acc_estado s on (s.tabla = 'acc_rol' and s.estado = u.estado)
     order by `fullname` ;          
 
 CREATE VIEW `v_acc_rol_x_usuario` AS
@@ -234,6 +236,9 @@ CREATE VIEW `v_acc_programa_x_rol` AS
         ((`acc_programa_x_rol` `pr`
         JOIN `acc_programa` `p` ON (`p`.`id_programas` = `pr`.`id_programas`))
         JOIN `acc_rol` `r` ON (`r`.`id_rol` = `pr`.`id_rol`))
-        order by `r`.`nombre_rol` , `p`.`nombre_menu` ;        
+        order by `r`.`nombre_rol` , `p`.`nombre_menu` ;   
+
+
+
 
 SET FOREIGN_KEY_CHECKS = 1;

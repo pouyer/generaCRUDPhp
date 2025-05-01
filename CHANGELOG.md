@@ -7,6 +7,15 @@
 
 Este archivo documenta los cambios más relevantes realizados en el proyecto **generaCRUDPhp**.
 
+## [0.5.2] - 2025-04-30
+### Cambios
+- se corrige la creacion de vistas del modulo de accesos para ser mas eficiente las vistas
+- se corrige un <Did> en la generacion de vista_tabla que generaba un comportamiento extraño
+- se ajusta el renombre del archivo de conexion en la generacion del modulo accesos
+- se adiciona cambio del nombre del menu principal por el nombre del proyecto
+- se ajusta la presentacion de las pantallas del modulo de acceso ajustando el <Did> errado
+
+
 ## [0.5.1] - 2025-04-05
 ### Cambios
 - Corrige bug de nombre del proyecto

@@ -65,7 +65,7 @@ function generar_vista($tabla, $campos, $directorio, $es_vista) {
     $contenido .= "                    <?php if(isset(\$_GET['busqueda']) && \$_GET['busqueda'] !== ''): ?>\n";
     $contenido .= "                        <a href=\"../controladores/controlador_$tabla.php\" class=\"btn btn-outline-danger icon-eraser\"> </a>  <!-- Aqui boton limpiar si requiere nombre -->\n";
     $contenido .= "                    <?php endif; ?>\n";
-    $contenido .= "                </div>\n";
+  //  $contenido .= "                </div>\n";
     $contenido .= "            </div>\n";
     $contenido .= "        </form>\n";
 

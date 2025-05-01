@@ -45,7 +45,7 @@ include "../include/funciones_utilidades.php";
         */
        
        // Información de versión
-       define('APP_VERSION', '1.0.0');
+       define('APP_VERSION', '1.0.1');
        define('APP_VERSION_DATE', '".$fecha."');
        define('APP_NAME', '".$nombreproyecto."');
        
@@ -166,6 +166,22 @@ session_start();
         foreach ($archivos as $archivo) {
             reemplazarEnArchivo($archivo, $cadena_a_busca, $palabra_reemplazo);
         }
+        
+        // remplaza en vista_menu_principal el titulo del menu principal por el nombre del proyecto
+        $nombreproyecto = $_SESSION['nombre_proyecto'];
+        // si nombreproyecto no existe se asigna el $proyecto como nombreproyecto
+        if (empty($nombreproyecto)) {
+            $nombreproyecto = $proyecto;
+        }
+        $nombremenubuscar = '**Menu Principal**';
+        $nombremenureemplazo = $nombreproyecto;
+        $path_vista_menu_principal = $rutaBase . '/vistas';
+        $vista_menu_principal = 'vista_menu_principal.php';
+        $archivo = listarArchivos($path_vista_menu_principal, $vista_menu_principal);
+
+        error_log("archivo Menu Principal: $$archivo[0]"); 
+        reemplazarEnArchivo($archivo[0], $nombremenubuscar, $nombremenureemplazo);
+
         // remplaza en vista_roles_programas
         $path_vista_roles_programas = $rutaBase . '/vistas';
         $vista_roles_programas = 'vista_roles_programas.php';
@@ -196,13 +212,8 @@ try {
         throw new Exception("Error en la conexión a la base de datos");
     }
 
-    // Se crea las carpetas del menú principal
-    crearMenuPrincipal($ruta, $conexion);
-
     // Actualizar la ruta de programas y obtener la respuesta
     $rutaArray = explode('\\', $ruta); // Separar por '\'
-
-
 
     $proyecto = end($rutaArray);
     $rutaProyecto = $proyecto . '/accesos/vistas';
@@ -212,6 +223,9 @@ try {
     if (empty($nombreproyecto)) {
         $nombreproyecto = $proyecto;
     }
+
+    // Se crea las carpetas del menú principal
+    crearMenuPrincipal($ruta, $conexion);
 
     $actualizaRutaResponse = actualizaRutaProgramas($rutaProyecto, $conexion);
     // crea archivo de configuracion

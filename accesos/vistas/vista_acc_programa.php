@@ -18,7 +18,7 @@ require_once '../verificar_sesion.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acc_programa - Tabla</title>
+    <title>Programa - Tabla</title>
     <?php include('../headIconos.php'); // Incluir los elementos del encabezado iconos?>
     <link rel="stylesheet" href="../css/estilos.css">
 </head>
@@ -50,7 +50,6 @@ require_once '../verificar_sesion.php';
                     <?php if(isset($_GET['busqueda']) && $_GET['busqueda'] !== ''): ?>
                         <a href="../controladores/controlador_acc_programa.php" class="btn btn-outline-danger icon-eraser"> </a>  <!-- Aqui boton limpiar si requiere nombre -->
                     <?php endif; ?>
-                </div>
             </div>
         </form>
         <table class="table table-striped table-sm mt-3">
