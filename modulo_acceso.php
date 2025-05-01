@@ -100,10 +100,10 @@ function ejecutar_script_sql($conexion, $archivo_sql) {
                         <small class="text-muted">Genera la página de Login con control de usuario para inicio de sesión</small>
                     </a>
                     
-                    <a href="accesos/llenar_programas.php" class="list-group-item list-group-item-action">
+                    <a href="accesos/llenar_programas.php" class="list-group-item list-group-item-action d-none">
                         <h5 class="mb-1">Llenar Programas</h5>
                         <small class="text-muted">Gestiona los programas y permisos del sistema</small>
-                    </a>
+                    </a> 
                 </div>
             </div>
         </div>
