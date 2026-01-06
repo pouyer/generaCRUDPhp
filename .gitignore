@@ -1,0 +1,27 @@
+# Configuración Sensible
+.env
+
+# Archivos de respaldo y configuración de sistemas
+.DS_Store
+Thumbs.db
+
+# IDEs y Editores de código
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs de error
+error_log
+php_errors.log
+*.log
+
+# Directorios temporales
+tmp/
+temp/
+
+# Directorios de iconos v1
+iconos-web_v1/
+
+# Si generas los proyectos dentro de subcarpetas del repo, puedes excluirlas aquí
+# proyectos_generados/

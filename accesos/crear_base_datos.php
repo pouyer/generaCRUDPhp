@@ -75,6 +75,12 @@ try {
         'warnings' => $errores_no_criticos
     ]);
 
+    // Actualizar el correo del administrador si está en la sesión
+    if (isset($_SESSION['admin_email']) && !empty($_SESSION['admin_email'])) {
+        $admin_email = $conexion->real_escape_string($_SESSION['admin_email']);
+        $conexion->query("UPDATE acc_usuario SET correo = '$admin_email' WHERE username = 'admin'");
+    }
+
 } catch (Exception $e) {
     ob_clean(); // Limpia el buffer de salida
     echo json_encode([

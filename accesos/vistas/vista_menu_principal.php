@@ -25,12 +25,30 @@ require_once '../../config/config.php'; // Incluir archivo de configuración
 <body>
 
 <div class="header-container">
-        <div class="container">
-            <div class="user-info">
-                <h2 class="welcome-text">Bienvenido, <?php echo htmlspecialchars($usuario_nombre); ?></h2> 
-                <a href="../controladores/controlador_login.php?action=logout" class="btn btn-danger logout-btn">
-                    <i class="icon-logout"></i> Cerrar Sesión
-                </a>
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <!-- Columna Logo: Alineada con el menú lateral (col-md-2) -->
+                <div class="col-md-2">
+                    <?php 
+                    $appLogo = getenv('APP_LOGO');
+                    if ($appLogo && file_exists(__DIR__ . '/../../' . $appLogo)) {
+                        // img-fluid para que no desborde el ancho de la columna
+                        echo '<img src="../../' . $appLogo . '" alt="Logo" class="img-fluid" style="max-height: 60px;">';
+                    } else {
+                        echo '<h4>' . APP_NAME . '</h4>';
+                    }
+                    ?>
+                </div>
+                
+                <!-- Columna Info Usuario: Alineada con el contenido (col-md-10) -->
+                <div class="col-md-10">
+                    <div class="user-info d-flex justify-content-between align-items-center">
+                        <h2 class="welcome-text m-0">Bienvenido, <?php echo htmlspecialchars($usuario_nombre); ?></h2> 
+                        <a href="../controladores/controlador_login.php?action=logout" class="btn btn-danger logout-btn">
+                            <i class="icon-logout"></i> Cerrar Sesión
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
 </div>
@@ -42,7 +60,10 @@ require_once '../../config/config.php'; // Incluir archivo de configuración
             <ul class="list-group">
                 <?php
                 require_once '../modelos/modelo_menu_principal.php';
+                require_once '../modelos/modelo_acc_log.php';
                 $modelo = new ModeloMenu();
+                $modeloLog = new ModeloAcc_log();
+                $modeloLog->registrar($usuario_id, 'VIEW', 'ACC_MENU', 'Apertura del Menú Principal');
                 $modulos = $modelo->obtenerModulos($usuario_id); // Método que obtiene los módulos
 
                 foreach ($modulos as $index => $modulo): ?>

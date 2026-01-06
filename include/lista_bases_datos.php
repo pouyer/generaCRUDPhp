@@ -11,6 +11,7 @@ if ($resultado) {
              htmlspecialchars($fila[0]) . "</option>";
     }
 } else {
-    echo "<option value=''>Error al obtener bases de datos</option>";
+    $error = $conexion->error ? $conexion->error : "Error desconocido o conexión no establecida.";
+    echo "<option value=''>Error: " . htmlspecialchars($error) . "</option>";
 }
 ?>

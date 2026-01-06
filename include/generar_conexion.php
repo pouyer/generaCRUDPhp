@@ -51,18 +51,97 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         // Contenido del archivo de conexión
+        // Generar archivo .env
+        $contenidoEnv = "DB_HOST=$host\n";
+        $contenidoEnv .= "DB_USER=$usuario\n";
+        $contenidoEnv .= "DB_PASS=$password\n";
+        $contenidoEnv .= "DB_NAME=$database\n";
+        $contenidoEnv .= "DB_PORT=" . ($_POST['puerto'] ?? '3306') . "\n";
+        $contenidoEnv .= "SMTP_HOST=" . trim($_POST['smtp_host'] ?? '') . "\n";
+        $contenidoEnv .= "SMTP_USER=" . trim($_POST['smtp_user'] ?? '') . "\n";
+        $contenidoEnv .= "SMTP_PASS=" . trim($_POST['smtp_pass'] ?? '') . "\n";
+        $contenidoEnv .= "SMTP_PORT=" . trim($_POST['smtp_port'] ?? '587') . "\n";
+        $contenidoEnv .= "SMTP_FROM=" . trim($_POST['smtp_from'] ?? '') . "\n";
+        
+        // --- Procesamiento de Imágenes ---
+        $imgDir = $ruta . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'img';
+        if (!is_dir($imgDir)) {
+            mkdir($imgDir, 0777, true);
+        }
+
+        function procesarImagen($fileKey, $envKey, $imgDir, $filenameInput) {
+            $envLine = "";
+            if (isset($_FILES[$fileKey]) && $_FILES[$fileKey]['error'] === UPLOAD_ERR_OK) {
+                $tmpName = $_FILES[$fileKey]['tmp_name'];
+                $originalName = basename($_FILES[$fileKey]['name']);
+                $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+                $allowed = ['jpg', 'jpeg', 'png', 'webp', 'ico'];
+                
+                if (in_array($ext, $allowed)) {
+                    // Usar nombre fijo si se prefiere, o original
+                    $finalName = $filenameInput . '.' . $ext;
+                    $destPath = $imgDir . DIRECTORY_SEPARATOR . $finalName;
+                    
+                    if (move_uploaded_file($tmpName, $destPath)) {
+                        chmod($destPath, 0666);
+                        // Ruta relativa para la web (assets/img/...)
+                        $webPath = 'assets/img/' . $finalName; 
+                        $envLine = "$envKey=$webPath\n";
+                    }
+                }
+            }
+            return $envLine;
+        }
+
+        $contenidoEnv .= procesarImagen('logo_app', 'APP_LOGO', $imgDir, 'logo');
+        $contenidoEnv .= procesarImagen('bg_login', 'LOGIN_BG', $imgDir, 'login_bg');
+        $contenidoEnv .= procesarImagen('favicon', 'APP_FAVICON', $imgDir, 'favicon');
+        // --- Fin Procesamiento de Imágenes ---
+        
+        $rutaEnv = $ruta . DIRECTORY_SEPARATOR . '.env';
+        
+        if (file_put_contents($rutaEnv, $contenidoEnv) === false) {
+             throw new Exception("No se pudo crear el archivo .env en: $rutaEnv");
+        }
+        chmod($rutaEnv, 0666);
+
+        // Contenido del archivo de conexión (leeyendo .env)
         $contenido = "<?php\n";
-        $contenido .= "    \$host = '$host';\n";
-        $contenido .= "    \$usuario = '$usuario';\n";
-        $contenido .= "    \$password = '$password';\n";
-        $contenido .= "    \$database = '$database';\n";
-        $contenido .= "    \$conexion = new mysqli(\$host, \$usuario, \$password, \$database);\n\n";
+        $contenido .= "    /**\n";
+        $contenido .= "     * Carga variables de entorno desde un archivo .env\n";
+        $contenido .= "     */\n";
+        $contenido .= "    if (!function_exists('cargar_env')) {\n";
+        $contenido .= "        function cargar_env(\$ruta) {\n";
+        $contenido .= "            if (!file_exists(\$ruta)) {\n";
+        $contenido .= "                return false;\n";
+        $contenido .= "            }\n";
+        $contenido .= "            \$lineas = file(\$ruta, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);\n";
+        $contenido .= "            foreach (\$lineas as \$linea) {\n";
+        $contenido .= "                if (strpos(trim(\$linea), '#') === 0) continue;\n";
+        $contenido .= "                list(\$nombre, \$valor) = explode('=', \$linea, 2);\n";
+        $contenido .= "                \$nombre = trim(\$nombre);\n";
+        $contenido .= "                \$valor = trim(\$valor);\n";
+        $contenido .= "                putenv(sprintf('%s=%s', \$nombre, \$valor));\n";
+        $contenido .= "                \$_ENV[\$nombre] = \$valor;\n";
+        $contenido .= "                \$_SERVER[\$nombre] = \$valor;\n";
+        $contenido .= "            }\n";
+        $contenido .= "            return true;\n";
+        $contenido .= "        }\n";
+        $contenido .= "    }\n\n";
+        $contenido .= "    // Cargar variables del .env\n";
+        $contenido .= "    cargar_env(__DIR__ . '/.env');\n\n";
+        
+        $contenido .= "    \$host = getenv('DB_HOST') ?: 'localhost';\n";
+        $contenido .= "    \$usuario = getenv('DB_USER');\n";
+        $contenido .= "    \$password = getenv('DB_PASS');\n";
+        $contenido .= "    \$database = getenv('DB_NAME');\n";
+        $contenido .= "    \$puerto = getenv('DB_PORT') ?: 3306;\n\n";
+        
+        $contenido .= "    \$conexion = new mysqli(\$host, \$usuario, \$password, \$database, \$puerto);\n\n";
         $contenido .= "    if (\$conexion->connect_error) {\n";
         $contenido .= "        die('Error en la conexión (' . \$conexion->connect_errno . '): ' . \$conexion->connect_error);\n";
         $contenido .= "    }\n\n";
-        $contenido .= "    \$conexion->set_charset('utf8');\n";
-        $contenido .= "    //Comentar esta linea una ves probada la conexion;\n";
-        $contenido .= "    // echo 'Conexión exitosa';\n";
+        $contenido .= "    \$conexion->set_charset('utf8mb4');\n";
         $contenido .= "?>";
   
 

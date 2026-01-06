@@ -2,431 +2,285 @@
 /**
  * GeneraCRUDphp
  *
- * es desarrollada para ajilizar el desarrollo de aplicaciones PHP
- * permitir la administracion de tablas creando leer, actualizar, editar y elimar reguistros
  * Desarrollado por Carlos Mejia
- * 2024-12-06
- * Version 0.4.0
+ * 2024-12-31
+ * Version 0.5.0
  * 
  */
 require_once '../verificar_sesion.php';
-    $registrosPorPagina = isset($_GET['registrosPorPagina']) ? (int)$_GET['registrosPorPagina'] : 10;
-    $paginaActual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
+$registrosPorPagina = isset($_GET['registrosPorPagina']) ? (int)$_GET['registrosPorPagina'] : 10;
+$paginaActual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estado - Tabla</title>
-    <?php include('../headIconos.php'); // Incluir los elementos del encabezado iconos?>
+    <title>Configuración de Estados - Administrar</title>
+    <?php include('../headIconos.php'); ?>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../css/estilos.css">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        body { background-color: #fcfcfc; font-family: 'Inter', sans-serif; }
+        .main-card { border: none; border-radius: 20px; box-shadow: 0 15px 35px rgba(245, 87, 108, 0.05); background: white; }
+        .btn-gradient-danger { background: var(--primary-gradient); color: white; border: none; border-radius: 12px; transition: all 0.3s ease; }
+        .btn-gradient-danger:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(245, 87, 108, 0.3); color: white; }
+        .table thead th { border: none; background: #fff5f6; color: #d63384; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding: 15px; }
+        .table tbody td { padding: 15px; border-bottom: 1px solid #fff0f0; }
+        .visible-badge { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .visible-1 { background-color: #28a745; }
+        .visible-0 { background-color: #dc3545; }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1 class="text-center">Estado</h1>
-        <div class="d-flex justify-content-between mb-3">
-            <button type="button" class="btn btn-primary icon-plus" data-bs-toggle="modal" data-bs-target="#modalCrear">
-                Crear
-            </button>
-            <div class="btn-group">
-                <button class="btn btn-success dropdown-toggle icon-export" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    Exportar
+    <div class="container my-5">
+        <div class="row mb-4">
+            <div class="col-lg-8">
+                <h1 class="display-6 fw-bold text-dark">Estados de Tabla</h1>
+                <p class="text-muted">Gestiona los estados lógicos y su visibilidad en los diferentes módulos</p>
+            </div>
+            <div class="col-lg-4 text-lg-end d-flex align-items-center justify-content-lg-end gap-2">
+                <button type="button" class="btn btn-gradient-danger px-4 py-2 d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#modalCrear">
+                    <i class="fas fa-plus"></i> Añadir Estado
                 </button>
-                <div class="dropdown-menu">
-                    <a class="dropdown-item" href="../controladores/controlador_acc_estado.php?action=exportar&formato=excel&busqueda=<?php echo isset($_GET['busqueda']) ? urlencode($_GET['busqueda']) : ''; ?>">Excel</a>
-                    <a class="dropdown-item" href="../controladores/controlador_acc_estado.php?action=exportar&formato=csv&busqueda=<?php echo isset($_GET['busqueda']) ? urlencode($_GET['busqueda']) : ''; ?>">CSV</a>
-                    <a class="dropdown-item" href="../controladores/controlador_acc_estado.php?action=exportar&formato=txt&busqueda=<?php echo isset($_GET['busqueda']) ? urlencode($_GET['busqueda']) : ''; ?>">TXT</a>
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle rounded-3" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-file-export"></i> Exportar
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0">
+                        <li><a class="dropdown-item" href="../controladores/controlador_acc_estado.php?action=exportar&formato=excel"><i class="fas fa-file-excel text-success me-2"></i> Excel</a></li>
+                        <li><a class="dropdown-item" href="../controladores/controlador_acc_estado.php?action=exportar&formato=csv"><i class="fas fa-file-csv text-info me-2"></i> CSV</a></li>
+                        <li><a class="dropdown-item" href="../controladores/controlador_acc_estado.php?action=exportar&formato=txt"><i class="fas fa-file-alt text-secondary me-2"></i> TXT</a></li>
+                    </ul>
                 </div>
             </div>
         </div>
-        <form method="GET" action="../controladores/controlador_acc_estado.php" class="d-flex mb-3">
-            <div class="input-group" style="width: 100%;">
-                <input type="text" name="busqueda" class="form-control" placeholder="Buscar..." value="<?php echo isset($_GET['busqueda']) ? htmlspecialchars($_GET['busqueda']) : ''; ?>">
-                <input type="hidden" name="action" value="buscar">
-                <input type="hidden" name="registrosPorPagina" value="<?= $registrosPorPagina ?>">
-                <input type="hidden" name="pagina" value="<?= $paginaActual ?>">
-                    <button type="submit" class="btn btn-secondary icon-search-outline"> </button>
-                    <?php if(isset($_GET['busqueda']) && $_GET['busqueda'] !== ''): ?>
-                        <a href="../controladores/controlador_acc_estado.php" class="btn btn-outline-danger icon-eraser"> </a>  <!-- Aqui boton limpiar si requiere nombre -->
-                    <?php endif; ?>
-            </div>
-        </form>
-        <table class="table table-striped table-sm mt-3">
-            <thead>
-                <tr>
-                    <th>id_estado</th>
-                    <th>tabla</th>
-                    <th>estado</th>
-                    <th>nombre_estado</th>
-                    <th>visible</th>
-                    <th>orden</th>
-                    <th>fecha_creacion</th>
-                    <th>fecha_actualiza</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php
-                require_once '../modelos/modelo_acc_estado.php';
-                $modelo = new ModeloAcc_estado();
-                $termino = $_GET['busqueda'] ?? ''; // Inicializar la variable $termino
-                $registrosPorPagina = isset($_GET['registrosPorPagina']) ? (int)$_GET['registrosPorPagina'] : 10;
-                $paginaActual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
- 			   $offset = ($paginaActual - 1) * $registrosPorPagina; // Calcular el offset para la paginación
-				   	// Verifica si se está realizando una búsqueda 
- 			   	if (isset($_GET['action']) && $_GET['action'] === 'buscar') { 
- 			   	// Si se está buscando, obtenemos los registros filtrados 
- 			   	$termino = $_GET['busqueda'] ?? ''; 
- 			   	$totalRegistros = $modelo->contarRegistrosPorBusqueda($termino); // Contar registros que coinciden con la búsqueda
- 			   	$registros = $modelo->buscar($termino, $registrosPorPagina, $offset); // Llama a la función de búsqueda con paginación
- 			   } else { 
- 			   // Si no se está buscando, obtenemos todos los registros con paginación 
- 			    $totalRegistros = $modelo->contarRegistros(); // Total de registros en la base de datos
- 			   	$registros = $modelo->obtenerTodos($registrosPorPagina, $offset); // Llama a la función para obtener todos
- 			   }
- 			   // Verifica si hay registros y los muestra
-                if ($registros):
-                    foreach ($registros as $registro):
-                ?>
-                <tr>
-                    <td><?php echo htmlspecialchars($registro['id_estado']); ?></td>
-                    <td><?php echo htmlspecialchars($registro['tabla']); ?></td>
-                    <td><?php echo htmlspecialchars($registro['estado']); ?></td>
-                    <td><?php echo htmlspecialchars($registro['nombre_estado']); ?></td>
-                    <td><?php echo htmlspecialchars($registro['visible']); ?></td>
-                    <td><?php echo htmlspecialchars($registro['orden']); ?></td>
-                    <td><?php echo htmlspecialchars($registro['fecha_creacion']); ?></td>
-                    <td><?php echo htmlspecialchars($registro['fecha_actualiza']); ?></td>
-                    <td>
-                        <button type="button" class="btn btn-warning icon-edit" data-bs-toggle="modal" data-bs-target="#modalActualizar" data-idActualizar="<?php echo $registro['id_estado']; ?>"
-                           data-id_estado="<?php echo htmlspecialchars($registro['id_estado']); ?>"
-                           data-tabla="<?php echo htmlspecialchars($registro['tabla']); ?>"
-                           data-estado="<?php echo htmlspecialchars($registro['estado']); ?>"
-                           data-nombre_estado="<?php echo htmlspecialchars($registro['nombre_estado']); ?>"
-                           data-visible="<?php echo htmlspecialchars($registro['visible']); ?>"
-                           data-orden="<?php echo htmlspecialchars($registro['orden']); ?>"
-                           data-fecha_creacion="<?php echo htmlspecialchars($registro['fecha_creacion']); ?>"
-                           data-fecha_actualiza="<?php echo htmlspecialchars($registro['fecha_actualiza']); ?>"> </button>  <!-- Boton Editar si requiere nombre aqui se pone -->
-                        <button class="btn btn-danger icon-trash-2" onclick="eliminar('<?php echo htmlspecialchars($registro['id_estado']); ?>')"> </button>  <!-- Boton Eliminar si requiere nombre aqui se pone -->
-                </tr>
-                <?php endforeach; else: ?>
-                <tr><td colspan="9">No hay registros disponibles.</td></tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
-        <div class="mb-3">
-            <form method="GET" class="d-flex">
-                <label for="registrosPorPagina" class="mr-2">Registros por página:</label>
-                <select id="registrosPorPagina" name="registrosPorPagina" class="form-control mr-2" onchange="this.form.submit()">
-                    <option value="10" <?= $registrosPorPagina == 10 ? 'selected' : '' ?>>10</option>
-                    <option value="20" <?= $registrosPorPagina == 20 ? 'selected' : '' ?>>20</option>
-                    <option value="30" <?= $registrosPorPagina == 30 ? 'selected' : '' ?>>30</option>
-                    <option value="50" <?= $registrosPorPagina == 50 ? 'selected' : '' ?>>50</option>
-                </select>
-                <input type="hidden" name="pagina" value="<?= $paginaActual ?>">
-            </form>
-        </div>
-        <nav aria-label="Page navigation">
-            <ul class="pagination">
-                <?php
-                // Verifica si se está realizando una búsqueda
-                if (isset($_GET['action']) && $_GET['action'] === 'buscar') {
-                $termino = $_GET['busqueda'] ?? ''; // Inicializar la variable $termino
-                    $totalRegistros = $modelo->contarRegistrosPorBusqueda($termino); // Contar registros que coinciden con la búsqueda
-                } else {
-                    $totalRegistros = $modelo->contarRegistros(); // Total de registros en la base de datos
-                }
-                $totalPaginas = ceil($totalRegistros / $registrosPorPagina);
-                for ($i = 1; $i <= $totalPaginas; $i++):
-                ?>
-                    <li class="page-item <?= $i == $paginaActual ? 'active' : '' ?> ">
-                        <a class="page-link" href="?pagina=<?= $i ?>&registrosPorPagina=<?= $registrosPorPagina ?>&busqueda=<?= urlencode($termino) ?>"><?= $i ?></a>
-                    </li>
-                <?php endfor; ?>
-            </ul>
-        </nav>
-        <div class="modal fade" id="modalCrear" tabindex="-1" aria-labelledby="modalCrearLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="modalCrearLabel">Crear Acc_estado</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+        <div class="main-card overflow-hidden">
+            <div class="p-4 border-bottom">
+                <form method="GET" action="../controladores/controlador_acc_estado.php">
+                    <input type="hidden" name="action" value="buscar">
+                    <div class="input-group bg-light rounded-4 overflow-hidden p-1 border">
+                        <span class="input-group-text bg-transparent border-0"><i class="fas fa-search"></i></span>
+                        <input type="text" name="busqueda" class="form-control bg-transparent border-0 shadow-none px-3" placeholder="Filtrar por tabla o nombre de estado..." value="<?php echo htmlspecialchars($_GET['busqueda'] ?? ''); ?>">
+                        <button type="submit" class="btn btn-dark rounded-3 px-4">Filtrar</button>
                     </div>
-                    <div class="modal-body">
-                        <form id="formCrear" method="post">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="tabla">tabla:</label>
-                                     <input type="text" class="form-control" id="tabla" name="tabla">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="estado">estado:</label>
-                                     <input type="text" class="form-control" id="estado" name="estado">
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="nombre_estado">nombre_estado:</label>
-                                     <input type="text" class="form-control" id="nombre_estado" name="nombre_estado">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="visible">visible:</label>
-                                     <input type="number" class="form-control" id="visible" name="visible">
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="orden">orden:</label>
-                                     <input type="number" class="form-control" id="orden" name="orden">
-                                </div>
-                            </div>
-                            <button type="submit" class="btn btn-primary icon-ok-2">Crear</button>
-                        </form>
-                    </div>
-                </div>
+                </form>
             </div>
-        </div>
-        <div class="modal fade" id="modalActualizar" tabindex="-1" aria-labelledby="modalActualizarLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg" >
-                <div class="modal-content">
-                <div class="modal-body">
-                    <form id="formActualizar" method="post">
-                     <div class="modal-header">
-                         <div class="row">
-                             <div class="form-group col-md-8">
-                               <h5 class="modal-title">Actualizar Acc_estado - ID: </h5>
-                             </div>
-                             <div class="form-group col-md-3">
-                                <div class="form-group mb-0 d-flex align-items-center">
-                                    <input type="text" class="form-control" id="id_estado" name="id_estado" value="<?php echo htmlspecialchars($registro['id_estado']); ?>" readonly>
-                                </div>
-                             </div>
-                         </div>
-                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
-                         </button>
-                     </div>
-                            <div class="row">
-                                 <div class="col-md-6 mb-3">
-                                     <label for="tabla">tabla:</label>
-                                     <input type="text" class="form-control" id="tabla" name="tabla">
-                                </div>
-                                 <div class="col-md-6 mb-3">
-                                     <label for="estado">estado:</label>
-                                     <input type="text" class="form-control" id="estado" name="estado">
-                                </div>
-                            </div>  <!-- Par no fin de registros  -->
-                            <div class="row">
-                                 <div class="col-md-6 mb-3">
-                                     <label for="nombre_estado">nombre_estado:</label>
-                                     <input type="text" class="form-control" id="nombre_estado" name="nombre_estado">
-                                </div>
-                                 <div class="col-md-6 mb-3">
-                                     <label for="visible">visible:</label>
-                                     <input type="number" class="form-control" id="visible" name="visible">
-                                </div>
-                            </div>  <!-- Par no fin de registros  -->
-                            <div class="row">
-                                 <div class="col-md-6 mb-3">
-                                     <label for="orden">orden:</label>
-                                     <input type="number" class="form-control" id="orden" name="orden">
-                                </div>
-                            </div> <!--  fin de registros  --> 
-                                 <input type="hidden" id="idActualizar" name="idActualizar">
-                                 <button type="submit" class="btn btn-warning icon-ok-2">Actualizar</button>
-                    </form>
-                 </div>
-             </div>
-         </div>
-     </div>
-    <!-- Scripts necesarios -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Inicializar todos los modales
-            var myModalCreate = new bootstrap.Modal(document.getElementById('modalCrear'));
-            var myModalUpdate = new bootstrap.Modal(document.getElementById('modalActualizar'));
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">ID</th>
+                            <th>Tabla</th>
+                            <th>Código</th>
+                            <th>Etiqueta</th>
+                            <th class="text-center">Visibilidad</th>
+                            <th class="text-center">Orden</th>
+                            <th class="text-center pe-4">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                        require_once '../modelos/modelo_acc_estado.php';
+                        $modelo = new ModeloAcc_estado();
+                        $termino = $_GET['busqueda'] ?? '';
+                        $offset = ($paginaActual - 1) * $registrosPorPagina;
 
-            // Manejador para el botón crear
-            document.querySelector('[data-bs-target="#modalCrear"]').addEventListener('click', function() {
-                myModalCreate.show();
-            });
-
-            // Manejador del formulario crear
-            document.getElementById('formCrear').addEventListener('submit', function(e) {
-                e.preventDefault();
-                const formData = new FormData(this);
-                fetch('../controladores/controlador_acc_estado.php?action=crear', {
-                    method: 'POST',
-                    body: new URLSearchParams(formData)
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if(data) {
-                        myModalCreate.hide();
-                        location.reload();
-                    } else {
-                        alert('Error al crear el registro.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error al procesar la solicitud.');
-                });
-            });
-            console.log('Modal crear:', document.getElementById('modalCrear'));
-            console.log('Botón crear:', document.querySelector('[data-bs-target="#modalCrear"]'));
-        });
-    </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Inicializar el modal de actualización
-            var modalActualizar = new bootstrap.Modal(document.getElementById('modalActualizar'));
-
-            // Manejar el evento show.bs.modal
-            document.getElementById('modalActualizar').addEventListener('show.bs.modal', function(event) {
-                // Botón que activó el modal
-                var button = event.relatedTarget;
-                var modal = this;
-
-                // Cargar id_estado
-                var valorid_estado = button.getAttribute('data-id_estado');
-                if(modal.querySelector('#id_estado')) {
-                    modal.querySelector('#id_estado').value = valorid_estado;
-                }
-                // Cargar tabla
-                var valortabla = button.getAttribute('data-tabla');
-                if(modal.querySelector('#tabla')) {
-                    modal.querySelector('#tabla').value = valortabla;
-                }
-                // Cargar estado
-                var valorestado = button.getAttribute('data-estado');
-                if(modal.querySelector('#estado')) {
-                    modal.querySelector('#estado').value = valorestado;
-                }
-                // Cargar nombre_estado
-                var valornombre_estado = button.getAttribute('data-nombre_estado');
-                if(modal.querySelector('#nombre_estado')) {
-                    modal.querySelector('#nombre_estado').value = valornombre_estado;
-                }
-                // Cargar visible
-                var valorvisible = button.getAttribute('data-visible');
-                if(modal.querySelector('#visible')) {
-                    modal.querySelector('#visible').value = valorvisible;
-                }
-                // Cargar orden
-                var valororden = button.getAttribute('data-orden');
-                if(modal.querySelector('#orden')) {
-                    modal.querySelector('#orden').value = valororden;
-                }
-                // Cargar fecha_creacion
-                var valorfecha_creacion = button.getAttribute('data-fecha_creacion');
-                if(modal.querySelector('#fecha_creacion')) {
-                    modal.querySelector('#fecha_creacion').value = valorfecha_creacion;
-                }
-                // Cargar fecha_actualiza
-                var valorfecha_actualiza = button.getAttribute('data-fecha_actualiza');
-                if(modal.querySelector('#fecha_actualiza')) {
-                    modal.querySelector('#fecha_actualiza').value = valorfecha_actualiza;
-                }
-            });
-
-            document.getElementById('formActualizar').addEventListener('submit', function(e) {
-                e.preventDefault();
-                const formData = new FormData(this);
-                fetch('../controladores/controlador_acc_estado.php?action=actualizar', {
-                    method: 'POST',
-                    body: new URLSearchParams(formData)
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if(data) {
-                        modalActualizar.hide();
-                        location.reload();
-                    } else {
-                        alert('Error al actualizar el registro.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error al procesar la solicitud.');
-                });
-            });
-
-            console.log('Modal actualizar:', document.getElementById('modalActualizar'));
-            console.log('Botones actualizar:', document.querySelectorAll('[data-bs-target="#modalActualizar"]'));
-        });
-    </script>
-        <script>
-            // Función para eliminar registros con confirmación
-            function eliminar(id) {
-                if (confirm('¿Estás seguro de que deseas eliminar este registro?')) {
-                    // Realizar la petición de eliminación
-                    fetch('../controladores/controlador_acc_estado.php?action=eliminar', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: 'id=' + encodeURIComponent(id)
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Error en la respuesta del servidor');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data) {
-                            // Si la eliminación fue exitosa, recargar la página
-                            location.reload();
+                        if (isset($_GET['action']) && $_GET['action'] === 'buscar') {
+                            $totalRegistros = $modelo->contarRegistrosPorBusqueda($termino);
+                            $registros = $modelo->buscar($termino, $registrosPorPagina, $offset);
                         } else {
-                            // Si hubo un error en la eliminación
-                            alert('Error al eliminar el registro.');
+                            $totalRegistros = $modelo->contarRegistros();
+                            $registros = $modelo->obtenerTodos($registrosPorPagina, $offset);
                         }
-                    })
-                    .catch(error => {
-                        // Manejo de errores en la petición
-                        console.error('Error:', error);
-                        alert('Error al eliminar el registro: ' + error.message);
-                    });
-                }
-            }
-            // Función para mostrar mensajes de confirmación estilizados
-            function mostrarMensaje(mensaje, tipo = 'success') {
-                const alertPlaceholder = document.createElement('div');
-                alertPlaceholder.innerHTML = `
-                    <div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
-                        ${mensaje}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                `;
-                document.querySelector('.container').insertBefore(alertPlaceholder, document.querySelector('.container').firstChild);
-                // Remover el mensaje después de 3 segundos
-                setTimeout(() => {
-                    alertPlaceholder.remove();
-                }, 3000);
-            }
-        </script>
-    <style>
-        .modal-backdrop {
-            z-index: 1040;
-        }
-        .modal {
-            z-index: 1050;
-        }
-    </style>
-        <script>
-            // Inicializar todos los dropdowns
-            document.addEventListener('DOMContentLoaded', function() {
-                var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'));
-                var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
-                    return new bootstrap.Dropdown(dropdownToggleEl);
-                });
-            });
-        </script>
+
+                        if ($registros):
+                            foreach ($registros as $reg):
+                        ?>
+                        <tr>
+                            <td class="ps-4 text-muted small"><?php echo htmlspecialchars($reg['id_estado']); ?></td>
+                            <td><span class="badge bg-light text-dark border fw-medium"><?php echo htmlspecialchars($reg['tabla']); ?></span></td>
+                            <td class="fw-bold text-primary"><?php echo htmlspecialchars($reg['estado']); ?></td>
+                            <td><?php echo htmlspecialchars($reg['nombre_estado']); ?></td>
+                            <td class="text-center">
+                                <span class="visible-badge visible-<?php echo $reg['visible']; ?>"></span>
+                                <span class="small"><?php echo ($reg['visible'] ? 'Público' : 'Oculto'); ?></span>
+                            </td>
+                            <td class="text-center"><span class="text-muted"><?php echo htmlspecialchars($reg['orden']); ?></span></td>
+                            <td class="text-center pe-4">
+                                <div class="btn-group shadow-sm border rounded-3 overflow-hidden">
+                                    <button class="btn btn-white btn-sm px-3 border-end" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#modalActualizar"
+                                            data-id_estado="<?= $reg['id_estado'] ?>"
+                                            data-tabla="<?= htmlspecialchars($reg['tabla']) ?>"
+                                            data-estado="<?= htmlspecialchars($reg['estado']) ?>"
+                                            data-nombre_estado="<?= htmlspecialchars($reg['nombre_estado']) ?>"
+                                            data-visible="<?= $reg['visible'] ?>"
+                                            data-orden="<?= $reg['orden'] ?>">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-white btn-sm px-3" onclick="eliminar(<?= $reg['id_estado'] ?>)">
+                                        <i class="fas fa-trash-alt text-danger"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; else: ?>
+                        <tr><td colspan="7" class="text-center py-5 text-muted">No se encontraron estados configurados.</td></tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="px-4 py-3 bg-light border-top d-flex justify-content-between align-items-center">
+                <form method="GET" class="d-flex align-items-center gap-3">
+                    <span class="small text-muted">Ver por página:</span>
+                    <select name="registrosPorPagina" class="form-select form-select-sm border-0 shadow-none bg-white rounded-3" onchange="this.form.submit()" style="width: auto;">
+                        <?php foreach([10,20,50,100] as $r): ?>
+                            <option value="<?= $r ?>" <?= $registrosPorPagina == $r ? 'selected' : '' ?>><?= $r ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </form>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <?php
+                        $totalPaginas = ceil($totalRegistros / $registrosPorPagina);
+                        for ($i = 1; $i <= $totalPaginas; $i++): ?>
+                            <li class="page-item <?= $i == $paginaActual ? 'active' : '' ?>">
+                                <a class="page-link shadow-none border-0 mx-1 rounded-3" href="?pagina=<?= $i ?>&registrosPorPagina=<?= $registrosPorPagina ?>"><?= $i ?></a>
+                            </li>
+                        <?php endfor; ?>
+                    </ul>
+                </nav>
+            </div>
+        </div>
     </div>
+
+    <!-- Modales (Crear/Actualizar) -->
+    <div class="modal fade" id="modalCrear" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-2xl border-0 rounded-5">
+                <div class="modal-header border-0 bg-dark text-white p-4">
+                    <h5 class="modal-title fw-bold">Definir Nuevo Estado</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formCrear">
+                    <div class="modal-body p-4">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label small fw-bold text-muted">NOMBRE DE LA TABLA</label>
+                                <input type="text" class="form-control p-3 bg-light border-0 shadow-none" name="tabla" required placeholder="Ej: acc_programa">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted">CÓDIGO (1-2 chars)</label>
+                                <input type="text" class="form-control p-3 bg-light border-0 shadow-none" name="estado" maxlength="2" required placeholder="Ej: A, I, P">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted">ORDEN</label>
+                                <input type="number" class="form-control p-3 bg-light border-0 shadow-none" name="orden" value="1">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold text-muted">ETIQUETA DESCRIPTIVA</label>
+                                <input type="text" class="form-control p-3 bg-light border-0 shadow-none" name="nombre_estado" required placeholder="Ej: Activo, Inactivo...">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold text-muted">VISIBILIDAD</label>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="visible" value="1" checked id="vis1">
+                                        <label class="form-check-label" for="vis1">Visible</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="visible" value="0" id="vis0">
+                                        <label class="form-check-label" for="vis0">Oculto</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 p-4 pt-0">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cerrar</button>
+                        <button type="submit" class="btn btn-dark px-4">Guardar Registro</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Actualizar -->
+    <div class="modal fade" id="modalActualizar" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-2xl border-0 rounded-5">
+                <div class="modal-header border-0 bg-primary text-white p-4">
+                    <h5 class="modal-title fw-bold">Actualizar Estado #<span id="display_id"></span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formActualizar">
+                    <input type="hidden" name="id_estado" id="update_id">
+                    <div class="modal-body p-4">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label small fw-bold text-muted">TABLA</label>
+                                <input type="text" class="form-control p-3 bg-light border-0 shadow-none" name="tabla" id="update_tabla" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted">CÓDIGO</label>
+                                <input type="text" class="form-control p-3 bg-light border-0 shadow-none" name="estado" id="update_estado" maxlength="2" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted">ORDEN</label>
+                                <input type="number" class="form-control p-3 bg-light border-0 shadow-none" name="orden" id="update_orden">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold text-muted">ETIQUETA</label>
+                                <input type="text" class="form-control p-3 bg-light border-0 shadow-none" name="nombre_estado" id="update_nombre" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold text-muted">VISIBILIDAD</label>
+                                <select class="form-select p-3 bg-light border-0 shadow-none" name="visible" id="update_visible">
+                                    <option value="1">Público / Visible</option>
+                                    <option value="0">Oculto / Interno</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 p-4 pt-0">
+                        <button type="submit" class="btn btn-primary w-100 py-3 rounded-4 fw-bold">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const modalUpd = document.getElementById('modalActualizar');
+            modalUpd.addEventListener('show.bs.modal', function(event) {
+                const btn = event.relatedTarget;
+                const modal = this;
+                const id = btn.getAttribute('data-id_estado');
+                modal.querySelector('#display_id').textContent = id;
+                modal.querySelector('#update_id').value = id;
+                modal.querySelector('#update_tabla').value = btn.getAttribute('data-tabla');
+                modal.querySelector('#update_estado').value = btn.getAttribute('data-estado');
+                modal.querySelector('#update_nombre').value = btn.getAttribute('data-nombre_estado');
+                modal.querySelector('#update_visible').value = btn.getAttribute('data-visible');
+                modal.querySelector('#update_orden').value = btn.getAttribute('data-orden');
+            });
+
+            $('#formCrear').on('submit', function(e) { e.preventDefault(); $.post('../controladores/controlador_acc_estado.php?action=crear', $(this).serialize(), (r) => { if(r) location.reload(); }, 'json'); });
+            $('#formActualizar').on('submit', function(e) { e.preventDefault(); $.post('../controladores/controlador_acc_estado.php?action=actualizar', $(this).serialize(), (r) => { if(r) location.reload(); }, 'json'); });
+        });
+
+        function eliminar(id) { if(confirm('¿Seguro que deseas eliminar este estado?')) { $.post('../controladores/controlador_acc_estado.php?action=eliminar', {id: id}, (r) => { if(r) location.reload(); }, 'json'); } }
+    </script>
 </body>
 </html>

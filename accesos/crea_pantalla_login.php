@@ -1,5 +1,6 @@
 <?php
 session_start();
+ob_start(); // Iniciar buffer de salida para capturar cualquier error/warning
 header('Content-Type: application/json');
 include "../include/funciones_utilidades.php";
 
@@ -41,6 +42,22 @@ function ModificaVerificarSesion($directorio) {
     $creaverificasesion = "$directorio/accesos/verificar_sesion.php";
     $contenido = "<?php
     session_start();
+
+    // Cargar environment si existe (para logo y otros assets)
+    // Ajustar ruta relativa buscando hacia arriba
+    \$dir = __DIR__;
+    while (!file_exists(\$dir . '/.env') && dirname(\$dir) !== \$dir) {
+        \$dir = dirname(\$dir);
+    }
+    if (file_exists(\$dir . '/.env')) {
+        \$env = parse_ini_file(\$dir . '/.env');
+        if (\$env) {
+            foreach (\$env as \$key => \$value) {
+                putenv(\"\$key=\$value\");
+                \$_ENV[\$key] = \$value;
+            }
+        }
+    }
 
     // Determinar la ruta base del sitio
     \$ruta_base = '';
@@ -100,6 +117,17 @@ function crearVistaLogin($directorio) {
     $contenido = "<?php
 session_start();
 
+// Cargar environment si existe
+if (file_exists(__DIR__ . '/../../.env')) {
+    \$env = parse_ini_file(__DIR__ . '/../../.env');
+    if (\$env) {
+        foreach (\$env as \$key => \$value) {
+            putenv(\"\$key=\$value\");
+            \$_ENV[\$key] = \$value;
+        }
+    }
+}
+
 // Verificar si el usuario ya está autenticado
 if (isset(\$_SESSION['autenticado']) && \$_SESSION['autenticado'] === true) {
     // Si está autenticado pero tiene cambio obligatorio de clave, redirigir a cambiar contraseña
@@ -130,6 +158,21 @@ unset(\$_SESSION['restablecer_exito']);
     <title>Iniciar Sesión</title>
     <?php include('../headIconos.php'); ?>
     <link rel='stylesheet' href='../css/estilos.css'>
+    <?php
+    \$loginBg = getenv('LOGIN_BG');
+    if (\$loginBg) {
+        echo \"<style>
+            body {
+                background: url('../../\$loginBg') no-repeat center center fixed;
+                background-size: cover;
+            }
+            .login-container {
+                background: rgba(255, 255, 255, 0.95);
+                box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            }
+        </style>\";
+    }
+    ?>
 </head>
 <body>
     <div class='container'>
@@ -185,18 +228,44 @@ unset(\$_SESSION['restablecer_exito']);
     crearArchivo($archivoVistaLogin, $contenido);
 }    
 
-//crea controlador_login.php
+// crea controlador_login.php
 function crearControladorLogin($directorio) {
     $archivoControladorLogin = "$directorio/accesos/controladores/controlador_login.php";
     $contenido = "<?php
 session_start();
 require_once '../modelos/modelo_acc_usuario.php';
+require_once '../modelos/modelo_acc_log.php';
+require_once '../../include/SimpleSMTP.php'; // Incluir la clase SMTP
 
 class ControladorLogin {
     private \$modelo;
+    private \$modeloLog;
 
     public function __construct() {
         \$this->modelo = new ModeloAcc_usuario();
+        \$this->modeloLog = new ModeloAcc_log();
+    }
+
+    /**
+     * Envía un correo electrónico utilizando SimpleSMTP
+     */
+    private function enviarCorreo(\$destinatario, \$asunto, \$cuerpo) {
+        \$host = getenv('SMTP_HOST');
+        \$user = getenv('SMTP_USER');
+        \$pass = getenv('SMTP_PASS');
+        \$port = getenv('SMTP_PORT') ?: 587;
+        \$from = getenv('SMTP_FROM') ?: \$user;
+
+        // Si no hay configuración SMTP, intentamos mail() nativo o fallamos controladamente
+        if (empty(\$host)) {
+            // Intento básico con mail()
+            \$headers = \"From: Sistema <no-reply@sistema.com>\\r\\n\";
+            \$headers .= \"Content-Type: text/html; charset=UTF-8\\r\\n\";
+            return mail(\$destinatario, \$asunto, \$cuerpo, \$headers);
+        }
+
+        \$smtp = new SimpleSMTP(\$host, \$user, \$pass, \$port);
+        return \$smtp->send(\$destinatario, \$asunto, \$cuerpo, 'Sistema de Usuarios');
     }
 
     public function iniciarSesion(\$username, \$password) {
@@ -212,15 +281,34 @@ class ControladorLogin {
             // Obtener perfil del usuario (roles)
             \$roles = \$this->modelo->obtenerRolesPorUsuario(\$usuario['id_usuario']);
             \$_SESSION['usuario_perfil'] = !empty(\$roles) ? \$roles[0]['nombre_rol'] : 'Sin perfil';
-            \$_SESSION['usuario_roles'] = \$roles;
-            
-            // Verificar si debe cambiar la contraseña obligatoriamente
-            if (\$this->modelo->requiereCambioPassword(\$usuario['id_usuario'])) {
-                \$_SESSION['cambio_clave_obligatorio'] = 'S';
-                return 'cambio_clave';
-            } else {
-                \$_SESSION['cambio_clave_obligatorio'] = 'N';
+            // Cargar permisos granulares
+            \$permisos = [];
+            foreach (\$roles as \$rol) {
+                // Consultar permisos por rol
+                \$sqlPerm = \"SELECT p.nombre_archivo, pr.permiso_insertar, pr.permiso_actualizar, pr.permiso_eliminar, pr.permiso_exportar 
+                            FROM acc_programa_x_rol pr 
+                            JOIN acc_programa p ON pr.id_programas = p.id_programas 
+                            WHERE pr.id_rol = ?\";
+                \$stmtPerm = \$this->modelo->getConexion()->prepare(\$sqlPerm);
+                \$stmtPerm->bind_param('i', \$rol['id_rol']);
+                \$stmtPerm->execute();
+                \$resPerm = \$stmtPerm->get_result();
+                while (\$p = \$resPerm->fetch_assoc()) {
+                    \$nombre = \$p['nombre_archivo'];
+                    if (!isset(\$permisos[\$nombre])) {
+                        \$permisos[\$nombre] = ['ins' => 0, 'upd' => 0, 'del' => 0, 'exp' => 0];
+                    }
+                    // El permiso más alto gana (OR lógico)
+                    \$permisos[\$nombre]['ins'] = \$permisos[\$nombre]['ins'] | \$p['permiso_insertar'];
+                    \$permisos[\$nombre]['upd'] = \$permisos[\$nombre]['upd'] | \$p['permiso_actualizar'];
+                    \$permisos[\$nombre]['del'] = \$permisos[\$nombre]['del'] | \$p['permiso_eliminar'];
+                    \$permisos[\$nombre]['exp'] = \$permisos[\$nombre]['exp'] | \$p['permiso_exportar'];
+                }
             }
+            \$_SESSION['permisos'] = \$permisos;
+            
+            // Registrar log de acceso
+            \$this->modeloLog->registrar(\$usuario['id_usuario'], 'LOGIN', 'acc_usuario', 'Inicio de sesión exitoso');
             
             return true;
         }
@@ -242,9 +330,27 @@ class ControladorLogin {
         \$resultado = \$this->modelo->restablecerPassword(\$usuario_o_correo);
         
         if (\$resultado) {
-            // Aquí se enviaría el correo (en una implementación real)
-            // Por ahora solo retornamos los datos para mostrarlos en la vista
-            return \$resultado;
+            // Enviar correo con la nueva contraseña
+            \$asunto = 'Restablecimiento de Contraseña';
+            \$cuerpo = \"
+            <html>
+            <body>
+                <h2>Hola, {\$resultado['username']}</h2>
+                <p>Se ha solicitado un restablecimiento de contraseña para tu cuenta.</p>
+                <p>Tu nueva contraseña temporal es: <strong>{\$resultado['nueva_clave']}</strong></p>
+                <p>Por favor, inicia sesión y cámbiala lo antes posible.</p>
+            </body>
+            </html>
+            \";
+            
+            \$envio = \$this->enviarCorreo(\$resultado['correo'], \$asunto, \$cuerpo);
+            
+            if (\$envio) {
+                return ['exito' => true, 'mensaje' => 'Se ha enviado una nueva contraseña a su correo.'];
+            } else {
+                // Fallback si falla el correo
+                return ['exito' => true, 'mensaje' => 'Contraseña restablecida, pero no se pudo enviar el correo. Contacte al admin.'];
+            }
         }
         
         return false;
@@ -254,7 +360,7 @@ class ControladorLogin {
         // Obtener usuario para verificar la contraseña actual
         \$usuario = \$this->modelo->obtenerPorId(\$id_usuario);
         
-        if (!\$usuario || \$usuario['password'] !== md5(\$password_actual)) {
+        if (!\$usuario || !password_verify(\$password_actual, \$usuario['password'])) {
             return ['exito' => false, 'mensaje' => 'La contraseña actual es incorrecta'];
         }
         
@@ -266,6 +372,7 @@ class ControladorLogin {
         \$resultado = \$this->modelo->cambiarPassword(\$id_usuario, \$nueva_password);
         
         if (\$resultado) {
+            // Opcional: Enviar correo de confirmación
             return ['exito' => true, 'mensaje' => 'Contraseña actualizada correctamente'];
         } else {
             return ['exito' => false, 'mensaje' => 'Error al actualizar la contraseña'];
@@ -291,6 +398,22 @@ class ControladorLogin {
         try {
             \$resultado = \$this->modelo->crear(\$datos);
             if (\$resultado) {
+                // Enviar correo de bienvenida
+                if (!empty(\$datos['correo'])) {
+                    \$asunto = 'Bienvenido al Sistema';
+                    \$cuerpo = \"
+                    <html>
+                    <body>
+                        <h2>¡Bienvenido, {\$datos['fullname']}!</h2>
+                        <p>Tu cuenta ha sido creada exitosamente.</p>
+                        <p>Usuario: <strong>{\$datos['username']}</strong></p>
+                        <p>Contraseña: (La que definiste al registrarte)</p>
+                    </body>
+                    </html>
+                    \";
+                    \$this->enviarCorreo(\$datos['correo'], \$asunto, \$cuerpo);
+                }
+
                 return ['exito' => true, 'mensaje' => 'Usuario registrado correctamente'];
             } else {
                 return ['exito' => false, 'mensaje' => 'Error al registrar el usuario'];
@@ -343,12 +466,8 @@ if (isset(\$_GET['action'])) {
                 
                 \$resultado = \$controlador->restablecerPassword(\$usuario_o_correo);
                 
-                if (\$resultado) {
-                    // Aquí se enviaría el correo con la nueva contraseña
-                    \$_SESSION['restablecer_exito'] = 'Se ha enviado una nueva contraseña a su correo electrónico';
-                    
-                    // En entorno de desarrollo, mostrar la contraseña en la sesión para pruebas
-                    \$_SESSION['debug_nueva_clave'] = \$resultado;
+                if (is_array(\$resultado) && \$resultado['exito']) {
+                    \$_SESSION['restablecer_exito'] = \$resultado['mensaje'];
                 } else {
                     \$_SESSION['restablecer_error'] = 'No se encontró el usuario o correo electrónico';
                 }
@@ -410,10 +529,12 @@ if (isset(\$_GET['action'])) {
     }
 }
 ?> 
-
     ";
     crearArchivo($archivoControladorLogin, $contenido);
 }
+
+
+
 
 // crea vista_cambiar_password.php
 function crearVistaCambiarPassword($directorio) {
@@ -732,8 +853,28 @@ try {
     crearVistaCambiarPassword($rutanormalizada);
     crearVistaRegistro($rutanormalizada);
 
+    // Copiar librería SMTP
+    $origenSMTP = realpath(__DIR__ . '/../templates/SimpleSMTP.php');
+    if (!$origenSMTP || !file_exists($origenSMTP)) {
+        throw new Exception("No se encuentra la plantilla SimpleSMTP.php en templates/");
+    }
+
+    $dirDestinoInclude = $rutanormalizada . '/include';
+    if (!is_dir($dirDestinoInclude)) {
+        if (!mkdir($dirDestinoInclude, 0777, true)) {
+             throw new Exception("No se pudo crear el directorio include en: $dirDestinoInclude");
+        }
+    }
+
+    $destinoSMTP = $dirDestinoInclude . '/SimpleSMTP.php';
+    if (!copy($origenSMTP, $destinoSMTP)) {
+        $error = error_get_last();
+        throw new Exception("No se pudo copiar SimpleSMTP.php. Detalle: " . $error['message']);
+    }
+
 
     // Agregar el mensaje de éxito
+    ob_clean();
     $response = [
         'success' => true,
         'message' => 'El Modulo Login se creó exitosamente.',
@@ -742,6 +883,7 @@ try {
     echo json_encode($response);
 
 } catch (Exception $e) {
+    ob_clean();
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage(),

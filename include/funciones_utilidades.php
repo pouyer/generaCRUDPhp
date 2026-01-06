@@ -4,6 +4,30 @@
  */
 
 /**
+ * Renderiza una plantilla PHP con los datos proporcionados
+ * @param string $plantilla Ruta al archivo de plantilla
+ * @param array $datos Array asociativo de variables para la plantilla
+ * @return string El contenido renderizado
+ */
+function render_template($plantilla, $datos = []) {
+    if (!file_exists($plantilla)) {
+        throw new Exception("No se encontró la plantilla: $plantilla");
+    }
+    
+    // Extraer variables para que estén disponibles en la plantilla
+    extract($datos);
+    
+    // Iniciar buffer de salida
+    ob_start();
+    
+    // Incluir plantilla
+    include $plantilla;
+    
+    // Obtener contenido y limpiar buffer
+    return ob_get_clean();
+}
+
+/**
  * Normaliza una ruta de archivo eliminando barras duplicadas y estandarizando separadores
  * @param string $ruta La ruta a normalizar
  * @return string Ruta normalizada
@@ -15,6 +39,28 @@ function normalizar_ruta($ruta) {
     $ruta = preg_replace('#/+#', '/', $ruta);
     // Eliminar barra diagonal final
     return rtrim($ruta, '/');
+}
+
+/**
+ * Carga variables de entorno desde un archivo .env
+ * @param string $ruta Ruta al archivo .env
+ * @return bool true si se cargó, false si no existe
+ */
+function cargar_env($ruta) {
+    if (!file_exists($ruta)) {
+        return false;
+    }
+    $lineas = file($ruta, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lineas as $linea) {
+        if (strpos(trim($linea), '#') === 0) continue;
+        list($nombre, $valor) = explode('=', $linea, 2);
+        $nombre = trim($nombre);
+        $valor = trim($valor);
+        putenv(sprintf('%s=%s', $nombre, $valor));
+        $_ENV[$nombre] = $valor;
+        $_SERVER[$nombre] = $valor;
+    }
+    return true;
 }
 
 /**

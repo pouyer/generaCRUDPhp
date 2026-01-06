@@ -1,5 +1,5 @@
 <?php
-require_once '../../<conexion.php>';
+require_once '../../conexion.php';
 
 class ModeloAcc_usuario {
     private $conexion;
@@ -10,6 +10,10 @@ class ModeloAcc_usuario {
     public function __construct() {
         global $conexion;
         $this->conexion = $conexion;
+    }
+
+    public function getConexion() {
+        return $this->conexion;
     }
 
     public function contarRegistros() {
@@ -89,8 +93,8 @@ class ModeloAcc_usuario {
         if (!empty($datos['password'])) {
           if (isset($datos['password'])) {
             $campos[] = '`password`';
-            $valores[] = 'md5(?)';
-            $params[] = $datos['password'];
+            $valores[] = '?';
+            $params[] = password_hash($datos['password'], PASSWORD_DEFAULT);
             $tipos .= 's';
            }
         }
@@ -141,8 +145,8 @@ class ModeloAcc_usuario {
         }
         if (!empty($datos['password'])) {
             if (isset($datos['password'])) {
-            $actualizaciones[] = "`password` = md5(?)";
-            $params[] = $datos['password'];
+            $actualizaciones[] = "`password` = ?";
+            $params[] = password_hash($datos['password'], PASSWORD_DEFAULT);
             $tipos .= 's';
         }
         }
@@ -275,12 +279,17 @@ class ModeloAcc_usuario {
         }
     
         public function verificarCredenciales($username, $password) {
-            $query = "SELECT * FROM acc_usuario WHERE username = ? AND password = md5(?) AND estado = 'A'";
+            $query = "SELECT * FROM acc_usuario WHERE username = ? AND estado = 'A'";
             $stmt = $this->conexion->prepare($query);
-            $stmt->bind_param('ss', $username, $password);
+            $stmt->bind_param('s', $username);
             $stmt->execute();
             $resultado = $stmt->get_result();
-            return $resultado ? $resultado->fetch_assoc() : false;
+            $usuario = $resultado ? $resultado->fetch_assoc() : false;
+            
+            if ($usuario && password_verify($password, $usuario['password'])) {
+                return $usuario;
+            }
+            return false;
         }
     
         public function generarNuevaPassword() {
@@ -334,8 +343,8 @@ class ModeloAcc_usuario {
             $tipos_pk = 'i'; // Para la llave primaria
             $params = [];
     
-            $actualizaciones[] = "`password` = md5(?)";
-            $params[] = $datos['password'];
+            $actualizaciones[] = "`password` = ?";
+            $params[] = password_hash($datos['password'], PASSWORD_DEFAULT);
             $tipos .= 's';
             
             $actualizaciones[] = "`cambio_clave_obligatorio` = ?";
@@ -359,8 +368,8 @@ class ModeloAcc_usuario {
             $tipos_pk = 'i'; // Para la llave primaria
             $params = [];
     
-            $actualizaciones[] = "`password` = md5(?)";
-            $params[] = $nueva_password;
+            $actualizaciones[] = "`password` = ?";
+            $params[] = password_hash($nueva_password, PASSWORD_DEFAULT);
             $tipos .= 's';
             
             $actualizaciones[] = "`cambio_clave_obligatorio` = ?";

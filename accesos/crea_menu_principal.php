@@ -10,7 +10,7 @@ include "../include/funciones_utilidades.php";
         $response['ruta_ingresa'] = $ruta; // Imprimir ruta de origen
 
         // Preparar la consulta SQL
-        $query = "UPDATE `acc_programa` SET `ruta` = ? WHERE (`id_programas` in (1,2,3,4,5,6))";
+        $query = "UPDATE `acc_programa` SET `ruta` = ? WHERE (`id_programas` in (1,2,3,4,5,6,7))";
         $stmt = $conexion->prepare($query);
         
         // Verificar si la preparación fue exitosa
@@ -69,18 +69,41 @@ include "../include/funciones_utilidades.php";
     } 
 
     function generar_headIconos($directorio) {
-        $contenido = '    <!-- headIconos.php -->
-    <!-- Incluir estilos de bootstrap -->
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-		<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"> 
-    <!-- Incluir estilos de iconos -->
-		<link href="../iconos-web/css/iconos_web_fontello.css" rel="stylesheet" type="text/css">
-		<link href="../iconos-web/css/iconos_web_fontello-embedded.css" rel="stylesheet" type="text/css">
-		<link href="../iconos-web/css/animation.css" rel="stylesheet" type="text/css">
-		<link href="../iconos-web/css/iconos_web_fontello-codes.css" rel="stylesheet" type="text/css">
-		<link rel="stylesheet" href="../iconos-web/css/estiloIconos.css">
-    
-    <!-- Otros estilos o scripts que necesites -->';
+        $contenido = '<?php
+// Detectar ruta base para iconos-web de forma robusta
+if (file_exists(__DIR__ . "/iconos-web")) {
+    // Caso: Proyecto generado (iconos-web dentro de accesos)
+    $prefix = (strpos($_SERVER["PHP_SELF"], "/vistas/") !== false || strpos($_SERVER["PHP_SELF"], "/roles_programas/") !== false) ? "../" : "./";
+} else {
+    // Caso: Generador (iconos-web fuera de accesos)
+    $prefix = (strpos($_SERVER["PHP_SELF"], "/vistas/") !== false || strpos($_SERVER["PHP_SELF"], "/roles_programas/") !== false) ? "../../" : "../";
+}
+?>
+<!-- headIconos.php -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+<?php
+$favicon = getenv("APP_FAVICON");
+if ($favicon) {
+    if (file_exists(__DIR__ . "/assets/img/" . basename($favicon))) {
+         // Ajustar ruta si estamos en subcarpetas (usando $prefix)
+         // Nota: $favicon ya viene como assets/img/nombre.ext del .env
+        echo "<link rel=\'icon\' href=\'" . $prefix . $favicon . "\' type=\'image/x-icon\'>";
+    } else {
+         // Si se accede desde un script que carga headIconos pero la ruta relativa es diferente
+         echo "<link rel=\'icon\' href=\'" . $prefix . $favicon . "\' type=\'image/x-icon\'>";
+    }
+}
+?>
+
+<!-- Incluir estilos de iconos Fontello -->
+<link href="<?= $prefix ?>iconos-web/css/fontello.css" rel="stylesheet" type="text/css">
+<link href="<?= $prefix ?>iconos-web/css/fontello-embedded.css" rel="stylesheet" type="text/css">
+<link href="<?= $prefix ?>iconos-web/css/animation.css" rel="stylesheet" type="text/css">
+<link href="<?= $prefix ?>iconos-web/css/fontello-codes.css" rel="stylesheet" type="text/css">
+
+
+<!-- Otros estilos o scripts que necesites -->';
 	   $parametro = normalizar_ruta($directorio);
 		error_log("Directorio: $parametro"); // Imprimir directorio entra parametro
         if (!is_dir("../../iconos-web")) {

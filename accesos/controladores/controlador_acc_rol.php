@@ -1,5 +1,10 @@
 <?php
 require_once '../modelos/modelo_acc_rol.php';
+require_once '../modelos/modelo_acc_log.php';
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 class ControladorAcc_rol {
     private $modelo;
@@ -133,6 +138,10 @@ switch ($accion) {
     case 'crear':
         $datos = $_POST;
         $resultado = $controlador->crear($datos);
+        if ($resultado) {
+            $log = new ModeloAcc_log();
+            $log->registrar($_SESSION['usuario_id'] ?? 0, 'CREAR', 'acc_rol', "Rol creado: " . ($datos['nombre_rol'] ?? ''));
+        }
         echo json_encode($resultado);
         break;
 
@@ -141,12 +150,20 @@ switch ($accion) {
         $datos = $_POST;
         unset($datos['id_rol']); // Eliminar el ID de los datos
         $resultado = $controlador->actualizar($id, $datos);
+        if ($resultado) {
+            $log = new ModeloAcc_log();
+            $log->registrar($_SESSION['usuario_id'] ?? 0, 'ACTUALIZAR', 'acc_rol', "Rol ID $id actualizado");
+        }
         echo json_encode($resultado);
         break;
 
     case 'eliminar':
         $id = $_POST['id'];
         $resultado = $controlador->eliminar($id);
+        if ($resultado) {
+            $log = new ModeloAcc_log();
+            $log->registrar($_SESSION['usuario_id'] ?? 0, 'ELIMINAR', 'acc_rol', "Rol ID $id eliminado");
+        }
         echo json_encode($resultado);
         break;
 

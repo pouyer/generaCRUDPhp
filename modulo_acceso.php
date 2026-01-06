@@ -100,10 +100,43 @@ function ejecutar_script_sql($conexion, $archivo_sql) {
                         <small class="text-muted">Genera la página de Login con control de usuario para inicio de sesión</small>
                     </a>
                     
+                    <a href="#" onclick="abrirExploradorSinc()" class="list-group-item list-group-item-action">
+                        <h5 class="mb-1 icon-folder-open">Sincronizar Programas desde Carpeta</h5>
+                        <small class="text-muted">Busca archivos .php en una carpeta y los registra como programas inactivos</small>
+                    </a>
+                    
                     <a href="accesos/llenar_programas.php" class="list-group-item list-group-item-action d-none">
                         <h5 class="mb-1">Llenar Programas</h5>
                         <small class="text-muted">Gestiona los programas y permisos del sistema</small>
                     </a> 
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Explorador de Carpetas para Sincronización -->
+    <div class="modal fade" id="modalExploradorSinc" tabindex="-1" role="dialog" aria-labelledby="modalExploradorSincLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalExploradorSincLabel">Seleccionar Carpeta para Sincronizar</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Actual:</span>
+                        </div>
+                        <input type="text" class="form-control" id="explorer_sinc_path" readonly>
+                    </div>
+                    
+                    <div class="list-group" id="explorer_sinc_list" style="max-height: 400px; overflow-y: auto;">
+                        <!-- Lista de carpetas se carga aquí -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="ejecutarSincronizacion()">Sincronizar Esta Carpeta</button>
                 </div>
             </div>
         </div>
@@ -205,6 +238,69 @@ function ejecutar_script_sql($conexion, $archivo_sql) {
                         xhr: xhr
                     });
                     alert('Error al procesar la solicitud. Revise la consola para más detalles.');
+                }
+            });
+        }
+
+        // --- Funciones para Sincronización de Programas ---
+
+        function abrirExploradorSinc() {
+            var rutaInicial = "<?php echo addslashes($ruta); ?>";
+            cargarDirectorioSinc(rutaInicial);
+            var myModal = new bootstrap.Modal(document.getElementById('modalExploradorSinc'));
+            myModal.show();
+        }
+
+        function cargarDirectorioSinc(ruta) {
+            $('#explorer_sinc_list').html('<div class="list-group-item">Cargando...</div>');
+            
+            $.post('include/api_explorador.php', { ruta: ruta }, function(data) {
+                if (data.error) {
+                    $('#explorer_sinc_list').html('<div class="alert alert-danger">' + data.error + '</div>');
+                    return;
+                }
+
+                $('#explorer_sinc_path').val(data.ruta_actual);
+                $('#explorer_sinc_list').empty();
+
+                data.directorios.forEach(function(dir) {
+                    var item = $('<button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"></button>');
+                    item.html('<span>📁 ' + dir.nombre + '</span>');
+                    item.click(function() {
+                        cargarDirectorioSinc(dir.ruta);
+                    });
+                    $('#explorer_sinc_list').append(item);
+                });
+            }, 'json').fail(function() {
+                $('#explorer_sinc_list').html('<div class="alert alert-danger">Error al conectar con el servidor.</div>');
+            });
+        }
+
+        function ejecutarSincronizacion() {
+            var rutaSinc = $('#explorer_sinc_path').val();
+            if(!rutaSinc) {
+                alert("Por favor seleccione una carpeta válida.");
+                return;
+            }
+
+            if(!confirm("¿Desea sincronizar los archivos PHP de esta carpeta como programas?")) return;
+
+            $.ajax({
+                url: 'accesos/sincronizar_programas.php',
+                method: 'POST',
+                data: { ruta_sinc: rutaSinc },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        alert('Éxito: ' + response.message + (response.totales ? '\nProcesados: ' + response.totales.procesados + '\nNuevos: ' + response.totales.nuevos : ''));
+                        bootstrap.Modal.getInstance(document.getElementById('modalExploradorSinc')).hide();
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function(xhr) {
+                    alert('Error al procesar la solicitud. Revise la consola.');
+                    console.error(xhr.responseText);
                 }
             });
         }

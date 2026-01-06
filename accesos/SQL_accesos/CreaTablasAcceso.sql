@@ -16,6 +16,7 @@ DROP TABLE IF EXISTS `acc_programa`;
 DROP TABLE IF EXISTS `acc_usuario`;
 DROP TABLE IF EXISTS `acc_rol`;
 DROP TABLE IF EXISTS `acc_modulo`;
+DROP TABLE IF EXISTS `acc_log_accion`;
 
 
 CREATE TABLE `acc_estado` (
@@ -93,6 +94,10 @@ CREATE TABLE `acc_rol_x_usuario` (
 CREATE TABLE `acc_programa_x_rol` (
   `id_programas` int(11) NOT NULL,
   `id_rol` int(11) NOT NULL,
+  `permiso_insertar` tinyint(4) DEFAULT 0,
+  `permiso_actualizar` tinyint(4) DEFAULT 0,
+  `permiso_eliminar` tinyint(4) DEFAULT 0,
+  `permiso_exportar` tinyint(4) DEFAULT 0,
   `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id_programas`,`id_rol`),
   KEY `programa_x_rol_id_rol_fk` (`id_rol`),
@@ -100,8 +105,21 @@ CREATE TABLE `acc_programa_x_rol` (
   CONSTRAINT `programa_x_rol_id_rol_fk` FOREIGN KEY (`id_rol`) REFERENCES `acc_rol` (`id_rol`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE `acc_log_accion` (
+  `id_log` int(11) NOT NULL AUTO_INCREMENT,
+  `id_usuario` int(11) DEFAULT NULL,
+  `accion` varchar(1024) DEFAULT NULL,
+  `tabla` varchar(128) DEFAULT NULL,
+  `detalles` text DEFAULT NULL,
+  `ip` varchar(45) DEFAULT NULL,
+  `fecha` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id_log`),
+  KEY `log_id_usuario_fk` (`id_usuario`),
+  CONSTRAINT `log_id_usuario_fk` FOREIGN KEY (`id_usuario`) REFERENCES `acc_usuario` (`id_usuario`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 INSERT INTO `acc_modulo` (`nombre_modulo`, `icono`, `orden`, `estado`) 
-VALUES ('Seguridad y Accesos', 'fa-solid fa-lock', 100, 'A');
+VALUES ('Seguridad y Accesos', 'icon-lock-filled', 100, 'A');
 
 INSERT INTO `acc_rol` (`nombre_rol`, `estado`) 
 VALUES ('Super Administrador', 'A'), ('Administrador Accesos', 'A');
@@ -115,7 +133,8 @@ VALUES ('Modulos',NULL,'vista_acc_modulo.php',1,'A',1,'icon-cubes'),
 ('Usuarios',NULL,'vista_acc_usuario.php',3,'A',1,'icon-vcard'),
 ('Programas',NULL,'vista_acc_programa.php',4,'A',1,'icon-desktop'),
 ('Programas por Rol',NULL,'vista_roles_programas.php',5,'A',1,'icon-th-list-outline'),
-('Estados',NULL,'vista_acc_estado.php',6,'A',1,'icon-check-outline');
+('Estados',NULL,'vista_acc_estado.php',6,'A',1,'icon-check-outline'),
+('Log de Acciones',NULL,'vista_acc_log.php',7,'A',1,'icon-history');
 
 INSERT INTO `acc_estado` ( tabla, estado, nombre_estado, visible, orden)
 VALUES ('acc_modulo','A','Activo',1,1),('acc_modulo','I','Inactivo',1,2),
@@ -127,10 +146,10 @@ VALUES ('acc_modulo','A','Activo',1,1),('acc_modulo','I','Inactivo',1,2),
 INSERT INTO `acc_rol_x_usuario` (`id_usuario`, `id_rol`) 
 SELECT 1, id_rol FROM acc_rol WHERE nombre_rol IN ('Super Administrador', 'Administrador Accesos');
 
-INSERT INTO `acc_programa_x_rol` (`id_programas`, `id_rol`)
-select `id_programas` ,`r`.`id_rol`  from `acc_programa` `p` , `acc_rol` `r` 
+INSERT INTO `acc_programa_x_rol` (`id_programas`, `id_rol`, `permiso_insertar`, `permiso_actualizar`, `permiso_eliminar`, `permiso_exportar`)
+SELECT `id_programas`, `r`.`id_rol`, 1, 1, 1, 1 FROM `acc_programa` `p`, `acc_rol` `r` 
 WHERE `nombre_rol` IN ('Super Administrador', 'Administrador Accesos')
- order by `r`.`id_rol`, `id_programas`;
+ORDER BY `r`.`id_rol`, `id_programas`;
 
 
 CREATE VIEW `v_acc_menu` AS
@@ -231,6 +250,10 @@ CREATE VIEW `v_acc_programa_x_rol` AS
         `p`.`nombre_menu` AS `nombre_programa`,
         `pr`.`id_rol` AS `id_rol`,
         `r`.`nombre_rol` AS `nombre_rol`,
+        `pr`.`permiso_insertar` AS `permiso_insertar`,
+        `pr`.`permiso_actualizar` AS `permiso_actualizar`,
+        `pr`.`permiso_eliminar` AS `permiso_eliminar`,
+        `pr`.`permiso_exportar` AS `permiso_exportar`,
         `pr`.`fecha_creacion` AS `fecha_creacion`
     FROM
         ((`acc_programa_x_rol` `pr`

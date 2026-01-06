@@ -1,5 +1,10 @@
 <?php
 require_once '../modelos/modelo_acc_usuario.php';
+require_once '../modelos/modelo_acc_log.php';
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 class ControladorAcc_usuario {
     private $modelo;
@@ -145,6 +150,10 @@ switch ($accion) {
     case 'crear':
         $datos = $_POST;
         $resultado = $controlador->crear($datos);
+        if ($resultado) {
+            $log = new ModeloAcc_log();
+            $log->registrar($_SESSION['usuario_id'] ?? 0, 'CREAR', 'acc_usuario', "Usuario creado: " . ($datos['username'] ?? ''));
+        }
         echo json_encode($resultado);
         break;
 
@@ -153,12 +162,20 @@ switch ($accion) {
         $datos = $_POST;
         unset($datos['id_usuario']); // Eliminar el ID de los datos
         $resultado = $controlador->actualizar($id, $datos);
+        if ($resultado) {
+            $log = new ModeloAcc_log();
+            $log->registrar($_SESSION['usuario_id'] ?? 0, 'ACTUALIZAR', 'acc_usuario', "Usuario ID $id actualizado");
+        }
         echo json_encode($resultado);
         break;
 
     case 'eliminar':
         $id = $_POST['id'];
         $resultado = $controlador->eliminar($id);
+        if ($resultado) {
+            $log = new ModeloAcc_log();
+            $log->registrar($_SESSION['usuario_id'] ?? 0, 'ELIMINAR', 'acc_usuario', "Usuario ID $id eliminado");
+        }
         echo json_encode($resultado);
         break;
 

@@ -1,51 +1,59 @@
----
-
-### **CHANGELOG.md**
-
-```markdown
 # CHANGELOG
 
 Este archivo documenta los cambios más relevantes realizados en el proyecto **generaCRUDPhp**.
 
+## [1.0.0] - 2026-01-06
+### ✨ Características Premium
+- **Vistas SQL de Solo Lectura**: Detección automática de vistas y generación de interfaces de consulta protegidas (sin creación/edición).
+- **Búsqueda Avanzada por Campo**: Nuevo buscador para Vistas que permite filtrar por columna específica y valor.
+- **Auditoría Automática de Usuarios**: Sistema inteligente que asigna ID de usuario a campos de auditoría y los oculta de la interfaz.
+- **Temas Visuales Avanzados**: Implementación de 4 temas premium con personalización de color primario e iconos.
+- **RBAC Robusto**: Sistema de control de acceso basado en roles con permisos granulares (Inserta, Actualiza, Elimina, Exporta).
+- **Exportación Filtrada**: Soporte para exportar a Excel, CSV y TXT respetando los filtros activos.
+
+### 🛠️ Mejoras y Correcciones
+- **Detección de Tablas**: Corregida la lógica JS para identificar correctamente `VIEW` vs `BASE TABLE`.
+- **Compatibilidad con Vistas**: Implementado fallback de ordenamiento por primera columna cuando no existe PK definida.
+- **Estabilidad de Plantillas**: Eliminada la redundancia de métodos en el modelo generado que causaba errores fatales.
+- **Seguridad Git**: Agregado archivo `.gitignore` para proteger configuraciones locales y directorios temporales.
+- **Arquitectura Limpia**: Refactorización de las rutas de inclusión para mejorar la portabilidad de los proyectos generados.
+
 ## [0.5.2] - 2025-04-30
 ### Cambios
-- se corrige la creacion de vistas del modulo de accesos para ser mas eficiente las vistas
-- se corrige un <Did> en la generacion de vista_tabla que generaba un comportamiento extraño
-- se ajusta el renombre del archivo de conexion en la generacion del modulo accesos
-- se adiciona cambio del nombre del menu principal por el nombre del proyecto
-- se ajusta la presentacion de las pantallas del modulo de acceso ajustando el <Did> errado
-
+- Se corrige la creación de vistas del módulo de accesos para mayor eficiencia.
+- Se corrige error en etiquetas HTML en la generación de vista_tabla.
+- Se ajusta el renombre del archivo de conexión en el módulo accesos.
+- Se adiciona cambio dinámico del nombre del menú principal.
+- Se ajusta la presentación visual de las pantallas de acceso.
 
 ## [0.5.1] - 2025-04-05
 ### Cambios
-- Corrige bug de nombre del proyecto
-- Implementa seguridad en el Pasword
+- Corrige bug de nombre del proyecto.
+- Implementa seguridad en el hashing de Password.
 
 ## [0.5.0] - 2025-04-04
 ### Cambios
-- Implementacion de generacion pantalla de Login 
-- Creacion Registrar usuario 
-- Restablecer contraseña
+- Implementación de generación de pantalla de Login.
+- Creación de flujo de Registro de Usuario.
+- Funcionalidad de Restablecer Contraseña.
 
 ## [0.4.0] - 2025-03-04
 ### Cambios
 - Migración completa a **Bootstrap 5**.
-- Eliminación de dependencias de **jQuery**.
-- Inclusión de `headIconos.php` para centralizar estilos y scripts.
-- Mejora en la generación de vistas con soporte para modales y exportación.
+- Eliminación de dependencias de **jQuery** en el núcleo.
+- Inclusión de `headIconos.php` para centralizar recursos.
+- Mejora en la generación de vistas con soporte para modales.
 
 ## [0.3.0] - 2025-01-15
 ### Cambios
 - Implementación de exportación de datos en formatos **Excel**, **CSV** y **TXT**.
-- Mejora en la estructura del código generado para mayor modularidad.
-- Inclusión de soporte para búsquedas avanzadas.
+- Inclusión de soporte para búsquedas dinámicas.
 
 ## [0.2.0] - 2024-12-10
 ### Cambios
-- Soporte para paginación en las vistas generadas.
-- Inclusión de validación básica en los formularios.
+- Soporte para paginación configurable.
+- Inclusión de validación básica en formularios.
 
 ## [0.1.0] - 2024-10-01
 ### Cambios
-- Primera versión del generador de CRUDs.
-- Generación básica de vistas, controladores y modelos.
+- Primera versión del generador de CRUDs basada en MVC.
