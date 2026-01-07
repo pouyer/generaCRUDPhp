@@ -158,11 +158,23 @@ class Modelo<?php echo $nombreClase; ?> {
         $fieldType = $campo['Type'];
 ?>
 <?php if (in_array($fieldName, $camposRequeridos)): ?>
+<?php 
+    // Si el campo es de auditoría, no se debe validar como REQUERIDO en el modelo
+    // ya que el controlador lo inyecta automáticamente.
+    $isAuditField = (isset($config['fields'][$fieldName]['audit']) && ($config['fields'][$fieldName]['audit'] === 'insert' || $config['fields'][$fieldName]['audit'] === 'update'));
+?>
+<?php if ($isAuditField): ?>
+        // Campo de auditoria - Se inyecta desde el controlador
+        if (isset($datos['<?php echo $fieldName; ?>']) && $datos['<?php echo $fieldName; ?>'] !== '') {
+            $campos[] = '`<?php echo $fieldName; ?>`';
+            $valores[] = '?';
+<?php else: ?>
         if (!isset($datos['<?php echo $fieldName; ?>']) || $datos['<?php echo $fieldName; ?>'] === '') {
             throw new Exception('El campo <?php echo $fieldName; ?> es requerido.');
         } elseif (isset($datos['<?php echo $fieldName; ?>'])) {
             $campos[] = '`<?php echo $fieldName; ?>`';
             $valores[] = '?';
+<?php endif; ?>
 <?php else: ?>
         if (isset($datos['<?php echo $fieldName; ?>']) && $datos['<?php echo $fieldName; ?>'] !== '') {
           if (isset($datos['<?php echo $fieldName; ?>'])) {
@@ -179,7 +191,7 @@ class Modelo<?php echo $nombreClase; ?> {
                 echo "            \$tipos .= 'd';\n";
             } elseif (strpos($fieldType, 'date') !== false || strpos($fieldType, 'datetime') !== false) {
                 echo "            // Formatear fecha\n";
-                echo "            \$params[] = date('Y-m-d', strtotime(\$datos['$fieldName']));\n";
+                echo "            \$params[] = !empty(\$datos['$fieldName']) ? date('Y-m-d', strtotime(\$datos['$fieldName'])) : null;\n";
                 echo "            \$tipos .= 's';\n";
             } else {
                 echo "            \$params[] = \$datos['$fieldName'];\n";
@@ -200,9 +212,7 @@ class Modelo<?php echo $nombreClase; ?> {
         return $stmt->execute();
     }
 
-    // Actualizar un registro
     public function actualizar($id, $datos) {
-        error_log(print_r($datos, true)); // Verificar los datos recibidos
         $actualizaciones = [];
         $tipos = '';
         $tipos_pk = '<?php echo $tipoPrimaria; ?>'; // Para la llave primaria
@@ -216,7 +226,7 @@ class Modelo<?php echo $nombreClase; ?> {
 ?>
 <?php if (in_array($fieldName, $camposRequeridos)): ?>
 <?php 
-    // Si el campo es de auditoría TIPO INSERT, no se debe validar como REQUERIDO en el ACTUAIZAR
+    // Si el campo es de auditoría TIPO INSERT, no se debe validar como REQUERIDO en el ACTUALIZAR
     $isAuditInsert = (isset($config['fields'][$fieldName]['audit']) && $config['fields'][$fieldName]['audit'] === 'insert');
 ?>
 <?php if ($isAuditInsert): ?>
@@ -224,18 +234,20 @@ class Modelo<?php echo $nombreClase; ?> {
         if (isset($datos['<?php echo $fieldName; ?>']) && $datos['<?php echo $fieldName; ?>'] !== '') {
             $actualizaciones[] = "`<?php echo $fieldName; ?>` = ?";
 <?php else: ?>
-        if (!isset($datos['<?php echo $fieldName; ?>']) || $datos['<?php echo $fieldName; ?>'] === '') {
-            throw new Exception('El campo <?php echo $fieldName; ?> es requerido.');
-        } elseif (isset($datos['<?php echo $fieldName; ?>'])) {
+        // Campo Requerido: Validar solo si está presente
+        if (isset($datos['<?php echo $fieldName; ?>'])) {
+            if ($datos['<?php echo $fieldName; ?>'] === '') {
+                throw new Exception('El campo <?php echo $fieldName; ?> es requerido.');
+            }
             $actualizaciones[] = "`<?php echo $fieldName; ?>` = ?";
 <?php endif; ?>
 <?php else: ?>
-        // Para campos No requeridos
+        // Campo No Requerido
         if (isset($datos['<?php echo $fieldName; ?>']) && ($datos['<?php echo $fieldName; ?>'] !== '' || $datos['<?php echo $fieldName; ?>'] === 0)) {
             $actualizaciones[] = "`<?php echo $fieldName; ?>` = ?";
 <?php endif; ?>
 <?php
-            // Lógica de tipos
+            // Lógica de tipos común
             if (strpos($fieldType, 'int') !== false) {
                 echo "            \$params[] = \$datos['$fieldName'];\n";
                 echo "            \$tipos .= 'i';\n";
@@ -244,7 +256,7 @@ class Modelo<?php echo $nombreClase; ?> {
                 echo "            \$tipos .= 'd';\n";
             } elseif (strpos($fieldType, 'date') !== false || strpos($fieldType, 'datetime') !== false) {
                 echo "            // Formatear fecha\n";
-                echo "            \$params[] = date('Y-m-d', strtotime(\$datos['$fieldName']));\n";
+                echo "            \$params[] = !empty(\$datos['$fieldName']) ? date('Y-m-d', strtotime(\$datos['$fieldName'])) : null;\n";
                 echo "            \$tipos .= 's';\n";
             } else {
                 echo "            \$params[] = \$datos['$fieldName'];\n";
@@ -260,6 +272,7 @@ class Modelo<?php echo $nombreClase; ?> {
         $query = "UPDATE <?php echo $tabla; ?> SET " . implode(', ', $actualizaciones) . " WHERE $this->llavePrimaria = ?";
         $stmt = $this->conexion->prepare($query);
         if (!empty($params)) {
+             if(!$stmt) throw new Exception("Error preparando update: " . $this->conexion->error);
             $stmt->bind_param($tipos, ...$params);
         }
         return $stmt->execute();

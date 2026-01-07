@@ -18,4 +18,7 @@ if (isset($_POST['nombre_proyecto'])) {
 if (isset($_POST['admin_email'])) {
     $_SESSION['admin_email'] = $_POST['admin_email'];
 }
-?> 
+if (isset($_POST['config_tablas'])) {
+    $_SESSION['config_tablas'] = $_POST['config_tablas'];
+}
+?>

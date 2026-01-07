@@ -665,7 +665,7 @@ if ((isset($_POST['mostrar_tablas']) || isset($_POST['base_datos']) || (isset($_
         }
 
         // --- Lógica de Configuración de Tablas ---
-        var tablasConfig = {}; // Objeto global {tabla: {relaciones: {}, layout: {columnas: 2}, campos: {field: {list: true, export: true}}}}
+        var tablasConfig = <?php echo isset($_SESSION['config_tablas']) ? $_SESSION['config_tablas'] : '{}'; ?>; // Objeto global persistido en sesión
 
         function configurarRelaciones(tabla) {
             $('#rel_tabla_nombre').text(tabla);
@@ -793,6 +793,12 @@ if ((isset($_POST['mostrar_tablas']) || isset($_POST['base_datos']) || (isset($_
 
             tablasConfig[tabla] = config;
             console.log("Configuración guardada para " + tabla + ":", config);
+            
+            // Actualizar sesión con la nueva configuración
+            $.post('include/actualizar_sesion.php', {
+                config_tablas: JSON.stringify(tablasConfig)
+            });
+
             $('#modalRelaciones').modal('hide');
             // Opcional: mostrar un indicador visual en la tabla de que esta tabla tiene config especial
         }
