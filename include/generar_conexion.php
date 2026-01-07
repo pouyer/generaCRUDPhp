@@ -62,6 +62,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $contenidoEnv .= "SMTP_PASS=" . trim($_POST['smtp_pass'] ?? '') . "\n";
         $contenidoEnv .= "SMTP_PORT=" . trim($_POST['smtp_port'] ?? '587') . "\n";
         $contenidoEnv .= "SMTP_FROM=" . trim($_POST['smtp_from'] ?? '') . "\n";
+        $contenidoEnv .= "APP_TIMEZONE=" . trim($_POST['timezone'] ?? 'America/Bogota') . "\n";
         
         // --- Procesamiento de Imágenes ---
         $imgDir = $ruta . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'img';
@@ -130,7 +131,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $contenido .= "    }\n\n";
         $contenido .= "    // Cargar variables del .env\n";
         $contenido .= "    cargar_env(__DIR__ . '/.env');\n\n";
-        
+        $contenido .= "    // Configurar Zona Horaria\n";
+        $contenido .= "    date_default_timezone_set(getenv('APP_TIMEZONE') ?: 'UTC');\n\n";
         $contenido .= "    \$host = getenv('DB_HOST') ?: 'localhost';\n";
         $contenido .= "    \$usuario = getenv('DB_USER');\n";
         $contenido .= "    \$password = getenv('DB_PASS');\n";
@@ -141,7 +143,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $contenido .= "    if (\$conexion->connect_error) {\n";
         $contenido .= "        die('Error en la conexión (' . \$conexion->connect_errno . '): ' . \$conexion->connect_error);\n";
         $contenido .= "    }\n\n";
-        $contenido .= "    \$conexion->set_charset('utf8mb4');\n";
+        $contenido .= "    \$conexion->set_charset('utf8mb4');\n\n";
+        $contenido .= "    // Sincronizar zona horaria con la base de datos\n";
+        $contenido .= "    \$ahora = new DateTime();\n";
+        $contenido .= "    \$offset = \$ahora->format('P');\n";
+        $contenido .= "    \$conexion->query(\"SET time_zone='\$offset'\");\n";
         $contenido .= "?>";
   
 

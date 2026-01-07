@@ -215,10 +215,20 @@ class Modelo<?php echo $nombreClase; ?> {
         $fieldType = $campo['Type'];
 ?>
 <?php if (in_array($fieldName, $camposRequeridos)): ?>
+<?php 
+    // Si el campo es de auditoría TIPO INSERT, no se debe validar como REQUERIDO en el ACTUAIZAR
+    $isAuditInsert = (isset($config['fields'][$fieldName]['audit']) && $config['fields'][$fieldName]['audit'] === 'insert');
+?>
+<?php if ($isAuditInsert): ?>
+        // Campo de auditoria (Usuario Inserta) - No se requiere en actualización
+        if (isset($datos['<?php echo $fieldName; ?>']) && $datos['<?php echo $fieldName; ?>'] !== '') {
+            $actualizaciones[] = "`<?php echo $fieldName; ?>` = ?";
+<?php else: ?>
         if (!isset($datos['<?php echo $fieldName; ?>']) || $datos['<?php echo $fieldName; ?>'] === '') {
             throw new Exception('El campo <?php echo $fieldName; ?> es requerido.');
         } elseif (isset($datos['<?php echo $fieldName; ?>'])) {
             $actualizaciones[] = "`<?php echo $fieldName; ?>` = ?";
+<?php endif; ?>
 <?php else: ?>
         // Para campos No requeridos
         if (isset($datos['<?php echo $fieldName; ?>']) && ($datos['<?php echo $fieldName; ?>'] !== '' || $datos['<?php echo $fieldName; ?>'] === 0)) {

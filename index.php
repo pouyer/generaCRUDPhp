@@ -48,6 +48,7 @@ if (isset($_POST['smtp_pass'])) $_SESSION['smtp_pass'] = $_POST['smtp_pass'];
 if (isset($_POST['smtp_port'])) $_SESSION['smtp_port'] = $_POST['smtp_port'];
 if (isset($_POST['smtp_from'])) $_SESSION['smtp_from'] = $_POST['smtp_from'];
 if (isset($_POST['admin_email'])) $_SESSION['admin_email'] = $_POST['admin_email'];
+if (isset($_POST['timezone'])) $_SESSION['timezone'] = $_POST['timezone'];
 
 // Recuperar valores de la sesión
 $ruta = isset($_SESSION['ruta']) ? $_SESSION['ruta'] : '';
@@ -139,6 +140,19 @@ if (isset($_POST['generar_crud'])) {
                 <div class="col-md-3">
                     <label for="admin_email">Email Administrador:</label>
                     <input type="email" class="form-control" id="admin_email" name="admin_email" placeholder="admin@ejemplo.com" value="<?php echo isset($_SESSION['admin_email']) ? htmlspecialchars($_SESSION['admin_email']) : ''; ?>">
+                </div>
+                <div class="col-md-3">
+                    <label for="timezone">Zona Horaria:</label>
+                    <select class="form-control" id="timezone" name="timezone">
+                        <?php
+                        $timezones = DateTimeZone::listIdentifiers();
+                        $saved_tz = isset($_SESSION['timezone']) ? $_SESSION['timezone'] : 'America/Bogota';
+                        foreach ($timezones as $tz) {
+                            $selected = ($tz == $saved_tz) ? 'selected' : '';
+                            echo "<option value=\"$tz\" $selected>$tz</option>";
+                        }
+                        ?>
+                    </select>
                 </div>
                 <div class="col-md-12 text-right mt-2">
                     <a href="index.php?reset_config=1" class="btn btn-sm btn-outline-secondary" title="Borrar configuración manual y usar .env">
@@ -552,6 +566,7 @@ if ((isset($_POST['mostrar_tablas']) || isset($_POST['base_datos']) || (isset($_
             formData.append('smtp_port', $('#smtp_port').val());
             formData.append('smtp_from', $('#smtp_from').val());
             formData.append('admin_email', $('#admin_email').val());
+            formData.append('timezone', $('#timezone').val());
             
             // Agregar archivos
             var logo = $('#logo_app')[0].files[0];
