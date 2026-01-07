@@ -285,14 +285,16 @@ foreach ($campos as $campo):
     if ($numCols == 3) $bsClass = 'col-md-4';
     if ($numCols == 4) $bsClass = 'col-md-3';
 
-    $contador = 0;
-    foreach ($camposValidosCrear as $index => $campo): 
+    // Filtrar campos para evitar problemas de maquetación con los de auditoría
+    $camposVisiblesCrear = array_filter($camposValidosCrear, function($campo) use ($config) {
         $fieldName = $campo['Field'];
-        // Ignorar campos de auditoría en creación
-        if (isset($config['fields'][$fieldName]['audit']) && ($config['fields'][$fieldName]['audit'] === 'insert' || $config['fields'][$fieldName]['audit'] === 'update')) {
-            continue;
-        }
+        return !(isset($config['fields'][$fieldName]['audit']) && ($config['fields'][$fieldName]['audit'] === 'insert' || $config['fields'][$fieldName]['audit'] === 'update'));
+    });
 
+    $contador = 0;
+    $totalVisibles = count($camposVisiblesCrear);
+    foreach ($camposVisiblesCrear as $index => $campo): 
+        $fieldName = $campo['Field'];
         $hasRel = isset($relaciones[$fieldName]);
         if ($contador % $numCols == 0) echo '                            <div class="row">';
         $contador++;
@@ -328,7 +330,7 @@ foreach ($campos as $campo):
 <?php endif; ?>
                                 </div>
 <?php 
-        if ($contador % $numCols == 0 || $index === array_key_last($camposValidosCrear)) echo '                            </div>';
+        if ($contador % $numCols == 0 || $contador === $totalVisibles) echo '                            </div>';
     endforeach; 
 ?>
                             <div class="text-end mt-4">
@@ -375,18 +377,18 @@ foreach ($campos as $campo):
                      </div>
 <?php
     }
-
+?>
+<?php
     // Cuerpo del form
-    $contador = 0;
-    foreach ($camposValidosActualizar as $index => $campo):
+    $camposVisiblesActualizar = array_filter($camposValidosActualizar, function($campo) use ($config) {
         $fieldName = $campo['Field'];
-        // Ignorar campos de auditoría en actualización (solo los modificables, insert no importa aquí porque ya existe)
-        // Pero si es 'update', se llena automático, así que no mostrar. 'insert' se muestra? No debería ser editable. 
-        // Mejor regla: si tiene audit 'update', no se muestra. Si tiene 'insert', no se muestra para no editarlo erróneamente.
-        if (isset($config['fields'][$fieldName]['audit']) && ($config['fields'][$fieldName]['audit'] === 'update' || $config['fields'][$fieldName]['audit'] === 'insert')) {
-            continue;
-        }
-        
+        return !(isset($config['fields'][$fieldName]['audit']) && ($config['fields'][$fieldName]['audit'] === 'update' || $config['fields'][$fieldName]['audit'] === 'insert'));
+    });
+
+    $contador = 0;
+    $totalVisiblesAct = count($camposVisiblesActualizar);
+    foreach ($camposVisiblesActualizar as $index => $campo):
+        $fieldName = $campo['Field'];
         $hasRel = isset($relaciones[$fieldName]);
         if ($contador % $numCols == 0) echo '                            <div class="row">';
         $contador++;
@@ -422,7 +424,7 @@ foreach ($campos as $campo):
 <?php endif; ?>
                                 </div>
 <?php
-        if ($contador % $numCols == 0 || $index === array_key_last($camposValidosActualizar)) echo '                            </div>';
+        if ($contador % $numCols == 0 || $contador === $totalVisiblesAct) echo '                            </div>';
     endforeach;
 ?>
                                  <input type="hidden" id="idActualizar" name="idActualizar">
@@ -484,6 +486,10 @@ foreach ($campos as $campo):
             modalActualizarElement.addEventListener('show.bs.modal', function(event) {
                 var button = event.relatedTarget;
                 var modal = this;
+
+                // Cargar el ID para actualizar
+                var idActualizar = button.getAttribute('data-idActualizar');
+                modal.querySelector('#idActualizar').value = idActualizar;
 
 <?php foreach ($campos as $campo): ?>
                 var valor<?php echo $campo['Field']; ?> = button.getAttribute('data-<?php echo $campo['Field']; ?>');
