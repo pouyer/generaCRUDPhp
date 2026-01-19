@@ -27,17 +27,17 @@ class ControladorAcc_programa {
         return $this->modelo->eliminar($id);
     }
 
-    public function obtenerTodos($registrosPorPagina, $pagina, $busqueda = '') {
+    public function obtenerTodos($registrosPorPagina, $pagina, $sort = null, $dir = 'ASC') {
         $offset = ($pagina - 1) * $registrosPorPagina;
-        return $this->modelo->obtenerTodos($registrosPorPagina, $offset, $busqueda);
+        return $this->modelo->obtenerTodos($registrosPorPagina, $offset, $sort, $dir);
     }
 
     public function obtenerPorId($id) {
         return $this->modelo->obtenerPorId($id);
     }
 
-    public function buscar($termino, $registrosPorPagina, $offset) {
-        return $this->modelo->buscar($termino, $registrosPorPagina, $offset);
+    public function buscar($termino, $registrosPorPagina, $offset, $sort = null, $dir = 'ASC') {
+        return $this->modelo->buscar($termino, $registrosPorPagina, $offset, $sort, $dir);
     }
 
     public function contarRegistrosPorBusqueda($termino) {
@@ -169,14 +169,15 @@ switch ($accion) {
 
     case 'buscar':
         $termino = $_GET['busqueda'] ?? '';
-        $registrosPorPagina = $_GET['registrosPorPagina'] ?? 10; // Número de registros por página
-        $paginaActual = $_GET['pagina'] ?? 1; // Página actual
-        $offset = ($paginaActual - 1) * $registrosPorPagina; // Calcular el offset
-        $totalRegistros = $controlador->contarRegistrosPorBusqueda($termino); // Contar registros que coinciden con la búsqueda
-        $totalPaginas = ceil($totalRegistros / $registrosPorPagina); // Calcular total de páginas
-        $resultado = $controlador->buscar($termino, $registrosPorPagina, $offset);
-        // Aquí debes incluir la vista con los resultados
-        include '../vistas/vista_acc_programa.php'; // Incluir la vista correspondiente
+        $registrosPorPagina = $_GET['registrosPorPagina'] ?? 10;
+        $paginaActual = $_GET['pagina'] ?? 1;
+        $sort = isset($_GET['sort']) ? str_replace(['`', ' '], '', $_GET['sort']) : null;
+        $dir = $_GET['dir'] ?? 'ASC';
+        $offset = ($paginaActual - 1) * $registrosPorPagina;
+        $totalRegistros = $controlador->contarRegistrosPorBusqueda($termino);
+        $resultado = $controlador->buscar($termino, $registrosPorPagina, $offset, $sort, $dir);
+        $registros = $resultado; // Para la vista
+        include '../vistas/vista_acc_programa.php';
         break;
 
     case 'exportar':
@@ -185,10 +186,20 @@ switch ($accion) {
         break;
 
     default:
-        $registrosPorPagina = (int)($_GET['registrosPorPagina'] ?? 10); // Asegúrate de que sea un entero
-        $paginaActual = (int)($_GET['pagina'] ?? 1); // Asegúrate de que sea un entero
-        $offset = ($paginaActual - 1) * $registrosPorPagina; // Calcular el offset
-        $registros = $controlador->obtenerTodos($registrosPorPagina, $paginaActual);
-        include '../vistas/vista_acc_programa.php'; // Incluir la vista correspondiente
+        $registrosPorPagina = (int)($_GET['registrosPorPagina'] ?? 10);
+        $paginaActual = (int)($_GET['pagina'] ?? 1);
+        $sort = isset($_GET['sort']) ? str_replace(['`', ' '], '', $_GET['sort']) : null;
+        $dir = $_GET['dir'] ?? 'ASC';
+        $offset = ($paginaActual - 1) * $registrosPorPagina;
+        
+        if (isset($_GET['busqueda'])) {
+             $termino = $_GET['busqueda'];
+             $totalRegistros = $controlador->contarRegistrosPorBusqueda($termino);
+             $registros = $controlador->buscar($termino, $registrosPorPagina, $offset, $sort, $dir);
+        } else {
+             $totalRegistros = (new ModeloAcc_programa())->contarRegistros();
+             $registros = $controlador->obtenerTodos($registrosPorPagina, $paginaActual, $sort, $dir);
+        }
+        include '../vistas/vista_acc_programa.php';
         break;
 }

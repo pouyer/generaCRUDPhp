@@ -1,6 +1,7 @@
 <?php
 session_start();
 header('Content-Type: application/json');
+include_once "../include/funciones_utilidades.php";
 
 try {
     // Verificar requerimientos básicos
@@ -29,56 +30,34 @@ try {
         throw new Exception("Error en la conexión a la base de datos.");
     }
 
-    // 1. Validar/Crear Módulo 101
-    $id_modulo_default = 101;
-    $check_mod = $conexion->query("SELECT id_modulo FROM acc_modulo WHERE id_modulo = $id_modulo_default");
-    if ($check_mod->num_rows == 0) {
-        $sql_ins_mod = "INSERT INTO acc_modulo (id_modulo, nombre_modulo, icono, orden, estado) 
-                        VALUES ($id_modulo_default, 'No Asignado', 'icon-help-circled', 999, 'I')";
-        if (!$conexion->query($sql_ins_mod)) {
-            throw new Exception("Error al crear el módulo 101: " . $conexion->error);
-        }
+    // 1. Calcular la ruta relativa de forma robusta (Ej: /Proyecto/vistas/...)
+    // Obtenemos la ruta base (padre del proyecto) para calcular el path relativo
+    $ruta_proyecto_base = str_replace('\\', '/', $_SESSION['ruta']); // Ej: C:/xampp/htdocs/MiProyecto
+    $ruta_padre = dirname($ruta_proyecto_base); // Ej: C:/xampp/htdocs
+    
+    $ruta_norm = str_replace('\\', '/', $ruta_sinc);
+    $ruta_relativa = str_replace($ruta_padre, '', $ruta_norm); // Resultado: /MiProyecto/vistas/...
+
+    // Obtenemos solo el nombre del proyecto para actualizaRutaProgramas si es necesario
+    $rutaArray = explode('/', rtrim($ruta_proyecto_base, '/'));
+    $proyecto = end($rutaArray);
+
+    // 2. Sincronizar programas usando la función centralizada
+    // Pasamos explícitamente la ruta_relativa para que se asigne a los archivos encontrados
+    if (sincronizar_programas_vistas($conexion, $ruta_sinc, $ruta_relativa)) {
+        
+        // 3. ACTUALIZACIÓN DE RUTAS BASE (Módulos 1-4)
+        // Solo actualizamos los módulos core de accesos
+        actualizaRutaProgramas($proyecto, $conexion);
+
+        echo json_encode([
+            'success' => true,
+            'message' => "Sincronización completada exitosamente. Se han registrado nuevos programas y se han validado las rutas de acceso de forma inteligente."
+        ]);
+        exit;
+    } else {
+        throw new Exception("Error al sincronizar la carpeta.");
     }
-
-    // 2. Escanear archivos PHP
-    $archivos = glob($ruta_sinc . "/*.php");
-    $conteo_procesados = 0;
-    $conteo_nuevos = 0;
-
-    foreach ($archivos as $ruta_archivo) {
-        $nombre_archivo = basename($ruta_archivo);
-        $conteo_procesados++;
-
-        // Verificar si existe el programa
-        $stmt_check = $conexion->prepare("SELECT id_programas FROM acc_programa WHERE nombre_archivo = ?");
-        $stmt_check->bind_param("s", $nombre_archivo);
-        $stmt_check->execute();
-        $res_check = $stmt_check->get_result();
-
-        if ($res_check->num_rows == 0) {
-            // No existe, insertar
-            $nombre_menu = pathinfo($nombre_archivo, PATHINFO_FILENAME);
-            $estado = 'I';
-            
-            $stmt_ins = $conexion->prepare("INSERT INTO acc_programa (nombre_menu, nombre_archivo, id_modulo, estado) VALUES (?, ?, ?, ?)");
-            $stmt_ins->bind_param("ssis", $nombre_menu, $nombre_archivo, $id_modulo_default, $estado);
-            
-            if ($stmt_ins->execute()) {
-                $conteo_nuevos++;
-            }
-            $stmt_ins->close();
-        }
-        $stmt_check->close();
-    }
-
-    echo json_encode([
-        'success' => true,
-        'message' => "Sincronización completada.",
-        'totales' => [
-            'procesados' => $conteo_procesados,
-            'nuevos' => $conteo_nuevos
-        ]
-    ]);
 
 } catch (Exception $e) {
     echo json_encode([

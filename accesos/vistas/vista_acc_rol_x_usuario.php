@@ -1,7 +1,10 @@
 <?php
 require_once '../verificar_sesion.php';
-    $registrosPorPagina = isset($_GET['registrosPorPagina']) ? (int)$_GET['registrosPorPagina'] : 10;
-    $paginaActual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
+$registrosPorPagina = isset($_GET['registrosPorPagina']) ? (int)$_GET['registrosPorPagina'] : 10;
+$paginaActual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
+$sort = $_GET['sort'] ?? 'nombre_usuario, nombre_rol';
+$dir = $_GET['dir'] ?? 'ASC';
+$nextDir = ($dir === 'ASC') ? 'DESC' : 'ASC';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -45,10 +48,22 @@ require_once '../verificar_sesion.php';
         <table class="table table-striped table-sm mt-3">
             <thead>
                 <tr>
-                    <th>id_usuario</th>
-                    <th>id_rol</th>
-                    <th>fecha_creacion</th>
-                    <th>Acciones</th>
+                    <th>
+                        <a href="?<?php echo http_build_query(array_merge($_GET, ['sort' => 'nombre_usuario', 'dir' => $nextDir])); ?>" class="text-decoration-none text-dark">
+                            Usuario <?php if ($sort === 'nombre_usuario'): ?><i class="icon-<?php echo ($dir === 'ASC') ? 'up-dir' : 'down-dir'; ?> ms-1"></i><?php endif; ?>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="?<?php echo http_build_query(array_merge($_GET, ['sort' => 'nombre_rol', 'dir' => $nextDir])); ?>" class="text-decoration-none text-dark">
+                            Rol <?php if ($sort === 'nombre_rol'): ?><i class="icon-<?php echo ($dir === 'ASC') ? 'up-dir' : 'down-dir'; ?> ms-1"></i><?php endif; ?>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="?<?php echo http_build_query(array_merge($_GET, ['sort' => 'fecha_creacion', 'dir' => $nextDir])); ?>" class="text-decoration-none text-dark">
+                            Fecha Asignación <?php if ($sort === 'fecha_creacion'): ?><i class="icon-<?php echo ($dir === 'ASC') ? 'up-dir' : 'down-dir'; ?> ms-1"></i><?php endif; ?>
+                        </a>
+                    </th>
+                    <th class="text-center">Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -60,30 +75,28 @@ require_once '../verificar_sesion.php';
                 $paginaActual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
  			   $offset = ($paginaActual - 1) * $registrosPorPagina; // Calcular el offset para la paginación
 				   	// Verifica si se está realizando una búsqueda 
- 			   	if (isset($_GET['action']) && $_GET['action'] === 'buscar') { 
- 			   	// Si se está buscando, obtenemos los registros filtrados 
- 			   	$termino = $_GET['busqueda'] ?? ''; 
- 			   	$totalRegistros = $modelo->contarRegistrosPorBusqueda($termino); // Contar registros que coinciden con la búsqueda
- 			   	$registros = $modelo->buscar($termino, $registrosPorPagina, $offset); // Llama a la función de búsqueda con paginación
- 			   } else { 
- 			   // Si no se está buscando, obtenemos todos los registros con paginación 
- 			    $totalRegistros = $modelo->contarRegistros(); // Total de registros en la base de datos
- 			   	$registros = $modelo->obtenerTodos($registrosPorPagina, $offset); // Llama a la función para obtener todos
- 			   }
+                if (isset($_GET['action']) && $_GET['action'] === 'buscar') { 
+                    $termino = $_GET['busqueda'] ?? ''; 
+                    $totalRegistros = $modelo->contarRegistrosPorBusqueda($termino); 
+                    $registros = $modelo->buscar($termino, $registrosPorPagina, $offset, $sort, $dir); 
+                } else { 
+                    $totalRegistros = $modelo->contarRegistros(); 
+                    $registros = $modelo->obtenerTodos($registrosPorPagina, $offset, $sort, $dir); 
+                }
  			   // Verifica si hay registros y los muestra
                 if ($registros):
                     foreach ($registros as $registro):
                 ?>
                 <tr>
-                    <td><?php echo htmlspecialchars($registro['id_usuario']); ?></td>
-                    <td><?php echo htmlspecialchars($registro['id_rol']); ?></td>
+                    <td><i class="icon-user"></i> <?php echo htmlspecialchars($registro['nombre_usuario']); ?></td>
+                    <td><span class="badge badge-secondary"><?php echo htmlspecialchars($registro['nombre_rol']); ?></span></td>
                     <td><?php echo htmlspecialchars($registro['fecha_creacion']); ?></td>
-                    <td>
-                        <button class="btn btn-warning" data-toggle="modal" data-target="#modalActualizar" data-idActualizar="<?php echo $registro['id_usuario']; ?>"
+                    <td class="text-center">
+                        <button class="btn btn-warning btn-sm" data-toggle="modal" data-target="#modalActualizar" data-idActualizar="<?php echo $registro['id_usuario']; ?>"
                            data-id_usuario="<?php echo htmlspecialchars($registro['id_usuario']); ?>"
                            data-id_rol="<?php echo htmlspecialchars($registro['id_rol']); ?>"
                            data-fecha_creacion="<?php echo htmlspecialchars($registro['fecha_creacion']); ?>">Actualizar</button>
-                        <button class="btn btn-danger" onclick="eliminar('<?php echo htmlspecialchars($registro['id_usuario']); ?>')">Eliminar</button>
+                        <button class="btn btn-danger btn-sm" onclick="eliminar('<?php echo htmlspecialchars($registro['id_usuario']); ?>')">Eliminar</button>
                     </td>
                 </tr>
                 <?php endforeach; else: ?>
@@ -113,11 +126,11 @@ require_once '../verificar_sesion.php';
                 } else {
                     $totalRegistros = $modelo->contarRegistros(); // Total de registros en la base de datos
                 }
+                <?php
                 $totalPaginas = ceil($totalRegistros / $registrosPorPagina);
-                for ($i = 1; $i <= $totalPaginas; $i++):
-                ?>
-                    <li class="page-item <?= $i == $paginaActual ? 'active' : '' ?> ">
-                        <a class="page-link" href="?pagina=<?= $i ?>&registrosPorPagina=<?= $registrosPorPagina ?>&busqueda=<?= urlencode($termino) ?>"><?= $i ?></a>
+                for ($i = 1; $i <= $totalPaginas; $i++): ?>
+                    <li class="page-item <?= $i == $paginaActual ? 'active' : '' ?>">
+                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['pagina' => $i])); ?>"><?= $i ?></a>
                     </li>
                 <?php endfor; ?>
             </ul>

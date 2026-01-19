@@ -10,6 +10,23 @@
  * @var array $camposValidosCrear Array de campos válidos para el formulario de creación
  * @var array $camposValidosActualizar Array de campos válidos para el formulario de actualización
  */
+
+// Ordenar campos según la configuración si existe
+if (isset($config['fields'])) {
+    $ordenarCampos = function(&$array) use ($config) {
+        usort($array, function($a, $b) use ($config) {
+            $fA = is_array($a) ? $a['Field'] : $a;
+            $fB = is_array($b) ? $b['Field'] : $b;
+            $orderA = $config['fields'][$fA]['order'] ?? 999;
+            $orderB = $config['fields'][$fB]['order'] ?? 999;
+            return $orderA - $orderB;
+        });
+    };
+
+    $ordenarCampos($campos);
+    $ordenarCampos($camposValidosCrear);
+    $ordenarCampos($camposValidosActualizar);
+}
 ?>
 <?php echo "<?php\n"; ?>
 /**
@@ -19,7 +36,7 @@ require_once '../accesos/verificar_sesion.php';
 
 // Cargar permisos para este programa
 $mi_programa = 'vista_<?php echo $tabla; ?>.php'; // Debe coincidir con el nombre_archivo en acc_programa
-$permisos = $_SESSION['permisos'][$mi_programa] ?? ['ins' => 1, 'upd' => 1, 'del' => 1, 'exp' => 1];
+$permisos = $_SESSION['permisos'][$mi_programa] ?? ['ins' => 0, 'upd' => 0, 'del' => 0, 'exp' => 0];
 
 $registrosPorPagina = isset($_GET['registrosPorPagina']) ? (int)$_GET['registrosPorPagina'] : 15;
 $paginaActual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
@@ -127,7 +144,7 @@ foreach ($campos as $c) {
 }
 
 echo "<?php\n";
-echo "\$sort = \$_GET['sort'] ?? \"`$tabla`.`$llavePrimaria`\";\n";
+echo "\$sort = \$_GET['sort'] ?? null;\n";
 echo "\$dir = \$_GET['dir'] ?? 'DESC';\n";
 echo "\$nextDir = (\$dir === 'ASC') ? 'DESC' : 'ASC';\n";
 echo "?>\n";
@@ -196,8 +213,15 @@ foreach ($campos as $campo):
 ?>
                     <td><?php 
                         $isEnumStatus = (strpos($campo['Type'], "enum('activo','inactivo')") !== false || strpos($campo['Type'], "enum('inactivo','activo')") !== false);
+                        $isBoolean = (strpos($campo['Type'], 'tinyint(1)') !== false || strpos($campo['Type'], 'boolean') !== false);
+
                         if ($isEnumStatus) {
                             echo "<?php \$isChecked = (\$registro['" . $fieldName . "'] == 'activo') ? 'checked' : ''; ?>";
+                            echo '<div class="form-check form-switch d-flex justify-content-center ps-0">';
+                            echo '<input class="form-check-input" type="checkbox" disabled <?php echo $isChecked; ?>>';
+                            echo '</div>';
+                        } elseif ($isBoolean) {
+                            echo "<?php \$isChecked = (\$registro['" . $fieldName . "'] == 1 || \$registro['" . $fieldName . "'] === true) ? 'checked' : ''; ?>";
                             echo '<div class="form-check form-switch d-flex justify-content-center ps-0">';
                             echo '<input class="form-check-input" type="checkbox" disabled <?php echo $isChecked; ?>>';
                             echo '</div>';
@@ -303,12 +327,19 @@ foreach ($campos as $campo):
                                     <label for="<?php echo $fieldName; ?>"><?php echo htmlspecialchars($fieldName); ?>:</label>
 <?php 
     $isEnumStatus = (strpos($campo['Type'], "enum('activo','inactivo')") !== false || strpos($campo['Type'], "enum('inactivo','activo')") !== false);
+    $isBoolean = (strpos($campo['Type'], 'tinyint(1)') !== false || strpos($campo['Type'], 'boolean') !== false);
 ?>
 <?php if ($isEnumStatus): ?>
                                     <div class="form-check form-switch">
                                         <input type="hidden" name="<?php echo $fieldName; ?>" value="inactivo">
                                         <input class="form-check-input" type="checkbox" id="<?php echo $fieldName; ?>" name="<?php echo $fieldName; ?>" value="activo" checked>
                                         <label class="form-check-label" for="<?php echo $fieldName; ?>">Activo/Inactivo</label>
+                                    </div>
+<?php elseif ($isBoolean): ?>
+                                    <div class="form-check form-switch">
+                                        <input type="hidden" name="<?php echo $fieldName; ?>" value="0">
+                                        <input class="form-check-input" type="checkbox" id="<?php echo $fieldName; ?>" name="<?php echo $fieldName; ?>" value="1">
+                                        <label class="form-check-label" for="<?php echo $fieldName; ?>">Si/No</label>
                                     </div>
 <?php elseif ($hasRel): ?>
                                     <select class="form-select" id="<?php echo $fieldName; ?>" name="<?php echo $fieldName; ?>"<?php echo ($campo['Null'] == 'NO') ? ' required' : ''; ?>>
@@ -397,12 +428,19 @@ foreach ($campos as $campo):
                                      <label for="<?php echo $fieldName; ?>"><?php echo htmlspecialchars($fieldName); ?>:</label>
 <?php 
     $isEnumStatus = (strpos($campo['Type'], "enum('activo','inactivo')") !== false || strpos($campo['Type'], "enum('inactivo','activo')") !== false);
+    $isBoolean = (strpos($campo['Type'], 'tinyint(1)') !== false || strpos($campo['Type'], 'boolean') !== false);
 ?>
 <?php if ($isEnumStatus): ?>
                                     <div class="form-check form-switch">
                                         <input type="hidden" name="<?php echo $fieldName; ?>" value="inactivo">
                                         <input class="form-check-input" type="checkbox" id="<?php echo $fieldName; ?>" name="<?php echo $fieldName; ?>" value="activo">
                                         <label class="form-check-label" for="<?php echo $fieldName; ?>">Activo/Inactivo</label>
+                                    </div>
+<?php elseif ($isBoolean): ?>
+                                    <div class="form-check form-switch">
+                                        <input type="hidden" name="<?php echo $fieldName; ?>" value="0">
+                                        <input class="form-check-input" type="checkbox" id="<?php echo $fieldName; ?>" name="<?php echo $fieldName; ?>" value="1">
+                                        <label class="form-check-label" for="<?php echo $fieldName; ?>">Si/No</label>
                                     </div>
 <?php elseif ($hasRel): ?>
                                     <select class="form-select" id="<?php echo $fieldName; ?>" name="<?php echo $fieldName; ?>"<?php echo ($campo['Null'] == 'NO') ? ' required' : ''; ?>>
@@ -492,11 +530,18 @@ foreach ($campos as $campo):
                 modal.querySelector('#idActualizar').value = idActualizar;
 
 <?php foreach ($campos as $campo): ?>
+<?php 
+    $isBoolean = (strpos($campo['Type'], 'tinyint(1)') !== false || strpos($campo['Type'], 'boolean') !== false);
+?>
                 var valor<?php echo $campo['Field']; ?> = button.getAttribute('data-<?php echo $campo['Field']; ?>');
                 var input<?php echo $campo['Field']; ?> = modal.querySelector('#<?php echo $campo['Field']; ?>');
                 if(input<?php echo $campo['Field']; ?>) {
                     if (input<?php echo $campo['Field']; ?>.type === 'checkbox') {
+<?php if ($isBoolean): ?>
+                        input<?php echo $campo['Field']; ?>.checked = (valor<?php echo $campo['Field']; ?> == '1' || valor<?php echo $campo['Field']; ?> == 'true');
+<?php else: ?>
                         input<?php echo $campo['Field']; ?>.checked = (valor<?php echo $campo['Field']; ?> === 'activo');
+<?php endif; ?>
                     } else {
                         input<?php echo $campo['Field']; ?>.value = valor<?php echo $campo['Field']; ?>;
                     }

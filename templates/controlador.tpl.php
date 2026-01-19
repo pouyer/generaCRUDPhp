@@ -32,7 +32,7 @@ class Controlador<?php echo $nombreClase; ?> {
         $this->es_vista = <?php echo $es_vista ? 'true' : 'false'; ?>;
         
         // Cargar permisos
-        $this->permisos = $_SESSION['permisos']['vista_<?php echo $tabla; ?>.php'] ?? ['ins' => 1, 'upd' => 1, 'del' => 1, 'exp' => 1];
+        $this->permisos = $_SESSION['permisos']['vista_<?php echo $tabla; ?>.php'] ?? ['ins' => 0, 'upd' => 0, 'del' => 0, 'exp' => 0];
     }
 
     private function verificarPermiso($clave) {
@@ -76,9 +76,9 @@ class Controlador<?php echo $nombreClase; ?> {
 <?php endif; ?>
 
     // Método para obtener todos los registros
-    public function obtenerTodos($registrosPorPagina, $pagina, $busqueda = '') {
+    public function obtenerTodos($registrosPorPagina, $pagina, $orderBy = null, $orderDir = 'DESC') {
         $offset = ($pagina - 1) * $registrosPorPagina;
-        return $this->modelo->obtenerTodos($registrosPorPagina, $offset, $busqueda);
+        return $this->modelo->obtenerTodos($registrosPorPagina, $offset, $orderBy, $orderDir);
     }
 
     // Método para obtener un registro por ID
@@ -266,10 +266,12 @@ switch ($accion) {
         break;
 
     default:
-        $registrosPorPagina = (int)($_GET['registrosPorPagina'] ?? 10);
+        $registrosPorPagina = (int)($_GET['registrosPorPagina'] ?? 15);
         $paginaActual = (int)($_GET['pagina'] ?? 1);
+        $sort = $_GET['sort'] ?? null;
+        $dir = $_GET['dir'] ?? 'DESC';
         $offset = ($paginaActual - 1) * $registrosPorPagina;
-        $registros = $controlador->obtenerTodos($registrosPorPagina, $paginaActual);
+        $registros = $controlador->obtenerTodos($registrosPorPagina, $paginaActual, $sort, $dir);
         include '../vistas/vista_<?php echo $tabla; ?>.php';
         break;
 }

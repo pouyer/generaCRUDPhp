@@ -35,20 +35,20 @@ if (isset($_POST['nombre_proyecto'])) {
     $_SESSION['nombre_proyecto'] = ''; 
 }
 
-// Guardar configuración de conexión en sesión si se envía
-if (isset($_POST['host'])) $_SESSION['db_host'] = $_POST['host'];
-if (isset($_POST['usuario'])) $_SESSION['db_user'] = $_POST['usuario'];
-if (isset($_POST['password'])) $_SESSION['db_pass'] = $_POST['password'];
-if (isset($_POST['puerto'])) $_SESSION['db_port'] = $_POST['puerto'];
+// Guardar configuración de conexión en sesión si se envía y no está vacía
+if (!empty($_POST['host'])) $_SESSION['db_host'] = $_POST['host'];
+if (!empty($_POST['usuario'])) $_SESSION['db_user'] = $_POST['usuario'];
+if (!empty($_POST['password'])) $_SESSION['db_pass'] = $_POST['password'];
+if (!empty($_POST['puerto'])) $_SESSION['db_port'] = $_POST['puerto'];
 
-// Guardar configuración SMTP en sesión
-if (isset($_POST['smtp_host'])) $_SESSION['smtp_host'] = $_POST['smtp_host'];
-if (isset($_POST['smtp_user'])) $_SESSION['smtp_user'] = $_POST['smtp_user'];
-if (isset($_POST['smtp_pass'])) $_SESSION['smtp_pass'] = $_POST['smtp_pass'];
-if (isset($_POST['smtp_port'])) $_SESSION['smtp_port'] = $_POST['smtp_port'];
-if (isset($_POST['smtp_from'])) $_SESSION['smtp_from'] = $_POST['smtp_from'];
-if (isset($_POST['admin_email'])) $_SESSION['admin_email'] = $_POST['admin_email'];
-if (isset($_POST['timezone'])) $_SESSION['timezone'] = $_POST['timezone'];
+// Guardar configuración SMTP en sesión si se envía y no está vacía
+if (!empty($_POST['smtp_host'])) $_SESSION['smtp_host'] = $_POST['smtp_host'];
+if (!empty($_POST['smtp_user'])) $_SESSION['smtp_user'] = $_POST['smtp_user'];
+if (!empty($_POST['smtp_pass'])) $_SESSION['smtp_pass'] = $_POST['smtp_pass'];
+if (!empty($_POST['smtp_port'])) $_SESSION['smtp_port'] = $_POST['smtp_port'];
+if (!empty($_POST['smtp_from'])) $_SESSION['smtp_from'] = $_POST['smtp_from'];
+if (!empty($_POST['admin_email'])) $_SESSION['admin_email'] = $_POST['admin_email'];
+if (!empty($_POST['timezone'])) $_SESSION['timezone'] = $_POST['timezone'];
 
 // Recuperar valores de la sesión
 $ruta = isset($_SESSION['ruta']) ? $_SESSION['ruta'] : '';
@@ -287,16 +287,16 @@ if ((isset($_POST['mostrar_tablas']) || isset($_POST['base_datos']) || (isset($_
     // Incluir archivo de conexión
     require_once('include/conexion.php');
     
-    // Seleccionar la base de datos de manera segura
+    // Seleccionar la base de datos solo si no se ha seleccionado ya en conexion.php
     try {
-        if (!$conexion->select_db($_POST['base_datos'])) {
-             throw new Exception("No se pudo seleccionar la base de datos");
+        if (isset($_POST['base_datos']) && !empty($_POST['base_datos'])) {
+            if (!$conexion->select_db($_POST['base_datos'])) {
+                 $mensaje = "Error al seleccionar la base de datos: " . $conexion->error;
+            }
         }
     } catch (Throwable $e) {
-        // Si falla la selección (ej: base de datos borrada o nombre incorrecto),
-        // anulamos la selección para que no intente listar tablas y solo muestre el error visual.
-        unset($_POST['base_datos']);
-        unset($_POST['mostrar_tablas']);
+        $mensaje = "Error de conexión/selección: " . $e->getMessage();
+        error_log("Error al seleccionar base de datos en index.php: " . $e->getMessage());
     }
 
     if (isset($_POST['base_datos'])) { // Solo procedemos si la selección fue exitosa
@@ -306,7 +306,15 @@ if ((isset($_POST['mostrar_tablas']) || isset($_POST['base_datos']) || (isset($_
                 FROM information_schema.TABLES\n
                 WHERE TABLE_SCHEMA = '".$_POST['base_datos']."'\n"
                 . "ORDER BY TABLE_NAME ASC";
-        $resultado = $conexion->query($sql);
+        try {
+            $resultado = $conexion->query($sql);
+            if (!$resultado) {
+                throw new Exception($conexion->error);
+            }
+        } catch (Throwable $e) {
+            $mensaje = "Error al listar tablas: " . $e->getMessage();
+            $resultado = false;
+        }
         
         if ($resultado && $resultado->num_rows > 0) {
 ?>
@@ -448,13 +456,39 @@ if ((isset($_POST['mostrar_tablas']) || isset($_POST['base_datos']) || (isset($_
                             </div>
                         </div>
 
-                        <!-- Pestaña Campos -->
-                        <div class="tab-pane fade" id="campos-pane" role="tabpanel" aria-labelledby="campos-tab">
-                            <div id="campos_config_container" class="p-2">
-                                <!-- Aquí se cargarán los campos con sus checkboxes -->
-                                <p class="text-muted text-center">Cargando campos...</p>
-                            </div>
-                        </div>
+                         <!-- Pestaña Campos -->
+                         <div class="tab-pane fade" id="campos-pane" role="tabpanel" aria-labelledby="campos-tab">
+                             <div class="p-3 border-bottom mb-2 bg-light rounded">
+                                 <h6 class="fw-bold"><i class="icon-sort-name-up me-2"></i>Ordenamiento Predeterminado</h6>
+                                 <div class="row g-2">
+                                     <div class="col-md-4">
+                                         <label class="form-label small">Prioridad 1</label>
+                                         <div class="input-group input-group-sm">
+                                             <select id="sort_field_1" class="form-select select-sort-field"><option value="">-- Ninguno --</option></select>
+                                             <select id="sort_dir_1" class="form-select w-25"><option value="ASC">ASC</option><option value="DESC">DESC</option></select>
+                                         </div>
+                                     </div>
+                                     <div class="col-md-4">
+                                         <label class="form-label small">Prioridad 2</label>
+                                         <div class="input-group input-group-sm">
+                                             <select id="sort_field_2" class="form-select select-sort-field"><option value="">-- Ninguno --</option></select>
+                                             <select id="sort_dir_2" class="form-select w-25"><option value="ASC">ASC</option><option value="DESC">DESC</option></select>
+                                         </div>
+                                     </div>
+                                     <div class="col-md-4">
+                                         <label class="form-label small">Prioridad 3</label>
+                                         <div class="input-group input-group-sm">
+                                             <select id="sort_field_3" class="form-select select-sort-field"><option value="">-- Ninguno --</option></select>
+                                             <select id="sort_dir_3" class="form-select w-25"><option value="ASC">ASC</option><option value="DESC">DESC</option></select>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
+                             <div id="campos_config_container" class="p-2">
+                                 <!-- Aquí se cargarán los campos con sus checkboxes -->
+                                 <p class="text-muted text-center">Cargando campos...</p>
+                             </div>
+                         </div>
 
                         <!-- Pestaña Apariencia -->
                         <div class="tab-pane fade" id="apariencia-pane" role="tabpanel" aria-labelledby="apariencia-tab">
@@ -674,13 +708,40 @@ if ((isset($_POST['mostrar_tablas']) || isset($_POST['base_datos']) || (isset($_
             $('#modalRelaciones').modal('show');
 
             var base_datos = $('#base_datos').val();
-            var configExistente = tablasConfig[tabla] || { relaciones: {}, columns: 2, fields: {} };
+            
+            // Intentar cargar configuración desde BD primero
+            $.post('include/actualizar_sesion.php', { accion: 'cargar_config', tabla: tabla }, function(dbConfig) {
+                var configExistente = (dbConfig && !dbConfig.error) ? dbConfig : (tablasConfig[tabla] || { relaciones: {}, columns: 2, fields: {} });
+                
+                // Sincronizar con el objeto global para asegurar que se use al generar
+                tablasConfig[tabla] = configExistente;
+                
+                $.post('include/obtener_relaciones.php', { base_datos: base_datos, tabla: tabla }, function(response) {
+                    if (!response.success) {
+                        $('#relaciones_container').html('<div class="alert alert-danger">' + response.message + '</div>');
+                        return;
+                    }
+                    
+                    // Poblar selectores de ordenamiento predeterminado
+                    $('.select-sort-field').empty().append('<option value="">-- Ninguno --</option>');
+                    response.columnas_tabla.forEach(function(col) {
+                        $('.select-sort-field').append('<option value="' + col + '">' + col + '</option>');
+                    });
+                    
+                    // Limpiar previos
+                    $('.select-sort-field').val('');
+                    $('#sort_dir_1, #sort_dir_2, #sort_dir_3').val('ASC');
 
-            $.post('include/obtener_relaciones.php', { base_datos: base_datos, tabla: tabla }, function(response) {
-                if (!response.success) {
-                    $('#relaciones_container').html('<div class="alert alert-danger">' + response.message + '</div>');
-                    return;
-                }
+                    // Cargar valores de ordenamiento si existen
+                    if (configExistente.sort && Array.isArray(configExistente.sort)) {
+                        configExistente.sort.forEach(function(s, idx) {
+                            var n = idx + 1;
+                            if(n <= 3) {
+                                $('#sort_field_' + n).val(s.field);
+                                $('#sort_dir_' + n).val(s.dir);
+                            }
+                        });
+                    }
 
                 // 4. Cargar Pestaña Apariencia
                 $('#config_tema').val(configExistente.tema || 'azul');
@@ -693,10 +754,13 @@ if ((isset($_POST['mostrar_tablas']) || isset($_POST['base_datos']) || (isset($_
                     $('#relaciones_container').html('<div class="alert alert-info">No se detectaron llaves foráneas para esta tabla.</div>');
                 } else {
                     var htmlRel = '<div class="table-responsive"><table class="table table-sm">';
-                    htmlRel += '<thead><tr><th>Campo Local</th><th>Tabla Relacionada</th><th>Mostrar</th></tr></thead><tbody>';
+                    htmlRel += '<thead><tr><th>Campo Local</th><th>Tabla Relacionada</th><th>Mostrar</th><th>Ordenar por</th><th>Filtro SQL (Condition)</th></tr></thead><tbody>';
 
                     response.relaciones.forEach(function(rel) {
                         var currentDisplay = (configExistente.relaciones[rel.campo_local]) ? configExistente.relaciones[rel.campo_local].display : '';
+                        var currentSort = (configExistente.relaciones[rel.campo_local]) ? configExistente.relaciones[rel.campo_local].sort_by : '';
+                        var currentWhere = (configExistente.relaciones[rel.campo_local]) ? (configExistente.relaciones[rel.campo_local].where || '') : '';
+                        
                         htmlRel += '<tr><td><code>' + rel.campo_local + '</code></td><td><code>' + rel.tabla_padre + '</code></td><td>';
                         htmlRel += '<select class="form-select select-rel-display" data-campo="' + rel.campo_local + '" data-parent="' + rel.tabla_padre + '" data-parentid="' + rel.campo_padre + '" data-nullable="' + rel.es_nullable + '">';
                         htmlRel += '<option value="">-- No usar relación --</option>';
@@ -704,7 +768,19 @@ if ((isset($_POST['mostrar_tablas']) || isset($_POST['base_datos']) || (isset($_
                             var selected = (col === currentDisplay) ? 'selected' : '';
                             htmlRel += '<option value="' + col + '" ' + selected + '>' + col + '</option>';
                         });
-                        htmlRel += '</select></td></tr>';
+                        htmlRel += '</select></td>';
+                        
+                        // Nuevo select para ordenar relación
+                        htmlRel += '<td><select class="form-select select-rel-sort" data-campo="' + rel.campo_local + '">';
+                        htmlRel += '<option value="">(Auto: Campo Mostrar)</option>';
+                        rel.columnas_padre.forEach(function(col) {
+                            var selectedS = (col === currentSort) ? 'selected' : '';
+                        htmlRel += '<option value="' + col + '" ' + selectedS + '>' + col + '</option>';
+                        });
+                        htmlRel += '</select></td>';
+                        
+                        // Nuevo input para filtro SQL
+                        htmlRel += '<td><input type="text" class="form-control form-select-sm input-rel-where" data-campo="' + rel.campo_local + '" value="' + currentWhere + '" placeholder="ej: estado = \'activo\'"></td></tr>';
                     });
                     htmlRel += '</tbody></table></div>';
                     $('#relaciones_container').html(htmlRel);
@@ -751,8 +827,11 @@ if ((isset($_POST['mostrar_tablas']) || isset($_POST['base_datos']) || (isset($_
                 $('#campos_config_container').html(htmlCampos);
 
             }, 'json').fail(function() {
-                $('#relaciones_container').html('<div class="alert alert-danger">Error al conectar con el servidor.</div>');
+                $('#relaciones_container').html('<div class="alert alert-danger">Error al obtener columnas y relaciones de la tabla.</div>');
             });
+          }, 'json').fail(function() {
+              $('#relaciones_container').html('<div class="alert alert-danger">Error al cargar la configuración persistente desde el servidor.</div>');
+          });
         }
 
         function guardarConfigRelaciones() {
@@ -761,18 +840,31 @@ if ((isset($_POST['mostrar_tablas']) || isset($_POST['base_datos']) || (isset($_
                 relaciones: {},
                 columns: $('#num_columnas').val(),
                 fields: {},
+                sort: [],
                 tema: $('#config_tema').val(),
                 color: $('#config_color').val(),
                 icono: $('#config_icono').val()
             };
 
+            // Capturar Ordenamiento Predeterminado (Triple)
+            for(var i=1; i<=3; i++) {
+                var f = $('#sort_field_'+i).val();
+                if(f) {
+                    config.sort.push({ field: f, dir: $('#sort_dir_'+i).val() });
+                }
+            }
+
             // Capturar Relaciones
             $('.select-rel-display').each(function() {
-                var campo = $(this).data('campo');
+                var field = $(this).data('campo');
                 var display = $(this).val();
+                var sortBy = $('.select-rel-sort[data-campo="' + field + '"]').val();
+                var where = $('.input-rel-where[data-campo="' + field + '"]').val();
                 if (display) {
-                    config.relaciones[campo] = {
+                    config.relaciones[field] = {
                         display: display,
+                        sort_by: sortBy,
+                        where: where,
                         parent: $(this).data('parent'),
                         parentid: $(this).data('parentid'),
                         nullable: $(this).data('nullable')

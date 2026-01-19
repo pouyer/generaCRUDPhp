@@ -75,11 +75,15 @@ try {
         'warnings' => $errores_no_criticos
     ]);
 
-    // Actualizar el correo del administrador si está en la sesión
+    // Actualizar el correo y la contraseña del administrador
     if (isset($_SESSION['admin_email']) && !empty($_SESSION['admin_email'])) {
         $admin_email = $conexion->real_escape_string($_SESSION['admin_email']);
         $conexion->query("UPDATE acc_usuario SET correo = '$admin_email' WHERE username = 'admin'");
     }
+    
+    // Hash de la contraseña 'admin' por defecto para que funcione con el sistema de login
+    $pass_hash = password_hash('admin', PASSWORD_DEFAULT);
+    $conexion->query("UPDATE acc_usuario SET password = '$pass_hash' WHERE username = 'admin'");
 
 } catch (Exception $e) {
     ob_clean(); // Limpia el buffer de salida

@@ -2,6 +2,17 @@
 
 Este archivo documenta los cambios más relevantes realizados en el proyecto **generaCRUDPhp**.
 
+## [1.0.1] - 2026-01-18
+### 🚀 Nuevas Funcionalidades
+- **Filtros SQL en Relaciones**: Posibilidad de añadir claúsulas `WHERE` personalizadas a los comboboxes de llaves foráneas desde la configuración.
+- **Sincronización Inteligente de Rutas**: El sistema ahora detecta y corrige automáticamente la ruta de los archivos PHP al sincronizar, respetando la estructura personalizada del proyecto.
+- **Switches Interactivos**: Reemplazo de checkboxes/radios por interruptores tipo switch de Bootstrap 5 en los modales de creación y edición.
+
+### 🛠️ Correcciones
+- **Persistencia de Tipos Numéricos**: Solucionado error crítico donde campos tipo `YEAR`, `INT` o `DECIMAL` vacíos causaban fallos en MySQL (`Incorrect integer value: ''`). Ahora se envían correctamente como `NULL`.
+- **Auditoría UI**: Corrección en la visibilidad de campos de auditoría en los modales, asegurando consistencia entre sistemas operativos (Windows/Linux).
+- **Protección de Rutas**: La función de actualización de rutas ahora protege las configuraciones personalizadas y solo afecta a los módulos base del sistema.
+
 ## [1.0.0] - 2026-01-06
 ### ✨ Características Premium
 - **Vistas SQL de Solo Lectura**: Detección automática de vistas y generación de interfaces de consulta protegidas (sin creación/edición).

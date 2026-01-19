@@ -25,7 +25,7 @@ class ModeloAcc_rol {
         $camposBusqueda = [];
         $camposBusqueda[] = "`id_rol`";
         $camposBusqueda[] = "`nombre_rol`";
-        $camposBusqueda[] = "`nombre_estado`";
+        $camposBusqueda[] = "`estado`";
         $camposBusqueda[] = "`fecha_creacion`";
         $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ?";
         $stmt = $this->conexion->prepare($query);
@@ -35,9 +35,12 @@ class ModeloAcc_rol {
         $resultado = $stmt->get_result();
         return $resultado ? $resultado->fetch_assoc()['total'] : false;
     }
-    public function obtenerTodos($registrosPorPagina, $offset) {
-        $query = "SELECT * FROM v_acc_rol";
-        $query .= " LIMIT ? OFFSET ?";
+    public function obtenerTodos($registrosPorPagina, $offset, $orderBy = null, $orderDir = 'DESC') {
+        $columnasPermitidas = ['id_rol', 'nombre_rol', 'estado', 'fecha_creacion'];
+        $orderBy = in_array($orderBy, $columnasPermitidas) ? $orderBy : 'id_rol';
+        $orderDir = strtoupper($orderDir) === 'ASC' ? 'ASC' : 'DESC';
+
+        $query = "SELECT * FROM v_acc_rol ORDER BY $orderBy $orderDir LIMIT ? OFFSET ?";
         $stmt = $this->conexion->prepare($query);
         $stmt->bind_param('ii', $registrosPorPagina, $offset);
         $stmt->execute();
@@ -76,13 +79,14 @@ class ModeloAcc_rol {
             $tipos .= 's';
            }
         }
-        if (!empty($datos['fecha_actualiza'])) {
-          if (isset($datos['fecha_actualiza'])) {
-            $campos[] = '`fecha_actualiza`';
+        
+        // Datos de auditoría
+        $usuario_id = $_SESSION['usuario_id'] ?? null;
+        if ($usuario_id) {
+            $campos[] = '`usuario_id_inserto`';
             $valores[] = '?';
-            $params[] = $datos['fecha_actualiza'];
-            $tipos .= 's';
-           }
+            $params[] = $usuario_id;
+            $tipos .= 'i';
         }
 
         $query = "INSERT INTO acc_rol (" . implode(', ', $campos) . ") VALUES (" . implode(', ', $valores) . ")";
@@ -100,26 +104,25 @@ class ModeloAcc_rol {
         $tipos_pk = 'i'; // Para la llave primaria
         $params = [];
 
-        if (!empty($datos['nombre_rol'])) {
-            if (isset($datos['nombre_rol'])) {
+        if (array_key_exists('nombre_rol', $datos)) {
+            if ($datos['nombre_rol'] === '') throw new Exception('El nombre del rol es requerido.');
             $actualizaciones[] = "`nombre_rol` = ?";
             $params[] = $datos['nombre_rol'];
             $tipos .= 's';
         }
-        }
-        if (!empty($datos['estado'])) {
-            if (isset($datos['estado'])) {
+
+        if (array_key_exists('estado', $datos)) {
             $actualizaciones[] = "`estado` = ?";
             $params[] = $datos['estado'];
             $tipos .= 's';
         }
-        }
-        if (!empty($datos['fecha_actualiza'])) {
-            if (isset($datos['fecha_actualiza'])) {
-            $actualizaciones[] = "`fecha_actualiza` = ?";
-            $params[] = $datos['fecha_actualiza'];
-            $tipos .= 's';
-        }
+
+        // Datos de auditoría
+        $usuario_id = $_SESSION['usuario_id'] ?? null;
+        if ($usuario_id) {
+            $actualizaciones[] = "`usuario_id_actualizo` = ?";
+            $params[] = $usuario_id;
+            $tipos .= 'i';
         }
 
         $params[] = $id;
@@ -138,14 +141,18 @@ class ModeloAcc_rol {
         $stmt->bind_param('i', $id);
         return $stmt->execute();
     }
-    public function buscar($termino, $registrosPorPagina, $offset) {
+    public function buscar($termino, $registrosPorPagina, $offset, $orderBy = null, $orderDir = 'DESC') {
+        $columnasPermitidas = ['id_rol', 'nombre_rol', 'estado', 'fecha_creacion'];
+        $orderBy = in_array($orderBy, $columnasPermitidas) ? $orderBy : 'id_rol';
+        $orderDir = strtoupper($orderDir) === 'ASC' ? 'ASC' : 'DESC';
+
         $query = "SELECT * FROM v_acc_rol WHERE ";
         $camposBusqueda = [];
         $camposBusqueda[] = "`id_rol`";
         $camposBusqueda[] = "`nombre_rol`";
-        $camposBusqueda[] = "`nombre_estado`";
+        $camposBusqueda[] = "`estado`";
         $camposBusqueda[] = "`fecha_creacion`";
-        $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ? LIMIT ? OFFSET ?";
+        $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ? ORDER BY $orderBy $orderDir LIMIT ? OFFSET ?";
         $stmt = $this->conexion->prepare($query);
         $termino = "%" . $termino . "%";
         $stmt->bind_param('sii', $termino, $registrosPorPagina, $offset);
@@ -159,7 +166,7 @@ class ModeloAcc_rol {
             $camposBusqueda = [];
             $camposBusqueda[] = "`id_rol`";
             $camposBusqueda[] = "`nombre_rol`";
-            $camposBusqueda[] = "`nombre_estado`";
+            $camposBusqueda[] = "`estado`";
             $camposBusqueda[] = "`fecha_creacion`";
             $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ?";
             if (!$this->conexion) {

@@ -19,7 +19,9 @@ El sistema utiliza el patrón **MVC** (Modelo-Vista-Controlador), integra **Boot
     *   Configuración visual para asignar campos de "Usuario Creador" y "Usuario Modificador".
     *   Inyección automática del ID de usuario en el backend.
     *   Ocultamiento automático de estos campos en los formularios para evitar manipulación.
-7.  **Relaciones Inteligentes**: Detección automática de llaves foráneas para generar selectores (dropdowns) en los formularios.
+7.  **Relaciones Inteligentes y Filtradas**: 
+    *   Detección automática de llaves foráneas.
+    *   **NUEVO**: Capacidad para aplicar filtros SQL (`WHERE`) personalizados a los selectores desplegables.
 8.  **Exportación de Datos**: Soporte nativo para Excel, CSV y TXT con filtrado activo.
 9.  **Generación de Vistas SQL (Solo Lectura)**: 
     *   Detección automática de `VIEWS` en la base de datos.
@@ -122,3 +124,4 @@ Si deseas contribuir:
 ## 📄 Licencia
 
 Este proyecto está bajo la licencia MIT. Consulta el archivo LICENSE para más detalles.
+AUTOR: Carlos Mejía

@@ -4,30 +4,7 @@ header('Content-Type: application/json');
 include "../include/funciones_utilidades.php";
 
 
-    function actualizaRutaProgramas($ruta, $conexion) {
-        $response = []; // Inicializar la respuesta
 
-        $response['ruta_ingresa'] = $ruta; // Imprimir ruta de origen
-
-        // Preparar la consulta SQL
-        $query = "UPDATE `acc_programa` SET `ruta` = ? WHERE (`id_programas` in (1,2,3,4,5,6,7))";
-        $stmt = $conexion->prepare($query);
-        
-        // Verificar si la preparación fue exitosa
-        if (!$stmt) {
-            $response['error'] = "Error en la preparación de la consulta: " . $conexion->error;
-            return $response; // Devolver el error
-        }
-        $ruta = '/' . $ruta;
-        // Vincular el parámetro y ejecutar la consulta
-        $stmt->bind_param('s', $ruta);
-        if ($stmt->execute()) {
-            $response['success'] = "Ruta actualizada exitosamente.";
-        } else {
-            $response['error'] = "Error al ejecutar la consulta: " . $stmt->error;
-        }
-        return $response; // Devolver la respuesta
-    }
    
 
     function genera_configuracion($nombreproyecto, $rutaBase, $proyecto) {
@@ -44,9 +21,11 @@ include "../include/funciones_utilidades.php";
         * Contiene constantes y variables de configuración del sistema
         */
        
+       require_once __DIR__ . '/../include/version_info.php';
+       
        // Información de versión
-       define('APP_VERSION', '1.0.1');
-       define('APP_VERSION_DATE', '".$fecha."');
+       define('APP_VERSION', GENERATOR_VERSION);
+       define('APP_VERSION_DATE', GENERATOR_VERSION_DATE);
        define('APP_NAME', '".$nombreproyecto."');
        
        // Otras configuraciones globales pueden agregarse aquí
@@ -68,15 +47,27 @@ include "../include/funciones_utilidades.php";
        
     } 
 
-    function generar_headIconos($directorio) {
+    function generar_headIconos($directorio, $rutaRaiz) {
         $contenido = '<?php
-// Detectar ruta base para iconos-web de forma robusta
-if (file_exists(__DIR__ . "/iconos-web")) {
-    // Caso: Proyecto generado (iconos-web dentro de accesos)
-    $prefix = (strpos($_SERVER["PHP_SELF"], "/vistas/") !== false || strpos($_SERVER["PHP_SELF"], "/roles_programas/") !== false) ? "../" : "./";
+// Detectar ruta base para iconos-web (siempre en la raíz del proyecto)
+// Si el archivo actual está en una subcarpeta (vistas, controladores, etc)
+$current_path = $_SERVER["PHP_SELF"];
+$is_subfolder = (strpos($current_path, "/vistas/") !== false || 
+                  strpos($current_path, "/controladores/") !== false || 
+                  strpos($current_path, "/modelos/") !== false ||
+                  strpos($current_path, "/accesos/") !== false);
+
+// Si estamos dentro de la carpeta "accesos/vistas" o "accesos/controladores", necesitamos subir 2 niveles
+$is_deep_subfolder = (strpos($current_path, "/accesos/vistas/") !== false || 
+                      strpos($current_path, "/accesos/controladores/") !== false ||
+                      strpos($current_path, "/accesos/modelos/") !== false);
+
+if ($is_deep_subfolder) {
+    $prefix = "../../";
+} elseif ($is_subfolder) {
+    $prefix = "../";
 } else {
-    // Caso: Generador (iconos-web fuera de accesos)
-    $prefix = (strpos($_SERVER["PHP_SELF"], "/vistas/") !== false || strpos($_SERVER["PHP_SELF"], "/roles_programas/") !== false) ? "../../" : "../";
+    $prefix = "./";
 }
 ?>
 <!-- headIconos.php -->
@@ -85,14 +76,7 @@ if (file_exists(__DIR__ . "/iconos-web")) {
 <?php
 $favicon = getenv("APP_FAVICON");
 if ($favicon) {
-    if (file_exists(__DIR__ . "/assets/img/" . basename($favicon))) {
-         // Ajustar ruta si estamos en subcarpetas (usando $prefix)
-         // Nota: $favicon ya viene como assets/img/nombre.ext del .env
-        echo "<link rel=\'icon\' href=\'" . $prefix . $favicon . "\' type=\'image/x-icon\'>";
-    } else {
-         // Si se accede desde un script que carga headIconos pero la ruta relativa es diferente
-         echo "<link rel=\'icon\' href=\'" . $prefix . $favicon . "\' type=\'image/x-icon\'>";
-    }
+    echo "<link rel=\'icon\' href=\'" . $prefix . $favicon . "\' type=\'image/x-icon\'>";
 }
 ?>
 
@@ -101,21 +85,18 @@ if ($favicon) {
 <link href="<?= $prefix ?>iconos-web/css/fontello-embedded.css" rel="stylesheet" type="text/css">
 <link href="<?= $prefix ?>iconos-web/css/animation.css" rel="stylesheet" type="text/css">
 <link href="<?= $prefix ?>iconos-web/css/fontello-codes.css" rel="stylesheet" type="text/css">
-
-
-<!-- Otros estilos o scripts que necesites -->';
+<link rel="stylesheet" href="<?= $prefix ?>iconos-web/css/estiloIconos.css">
+';
 	   $parametro = normalizar_ruta($directorio);
 		error_log("Directorio: $parametro"); // Imprimir directorio entra parametro
-        if (!is_dir("../../iconos-web")) {
-               // genera ruta de iconos que puede usar la aplicacion
-                $origenIconos = __DIR__ . "/../iconos-web"; // Cambiar la ruta para subir un nivel
-                $origenIconos = normalizar_ruta($origenIconos);
-                error_log("Ruta de origen: $origenIconos"); // Imprimir ruta de origen
-                $ruta = $parametro;
-                $destinoIconos =  $ruta . "/iconos-web";
-                $destinoIconos = normalizar_ruta($destinoIconos);
-                error_log("Ruta de destino: $destinoIconos"); // Imprimir ruta de destino
-                copiarCarpeta($origenIconos, $destinoIconos);
+        // Copiar iconos-web a la RAÍZ del proyecto
+        $origenIconos = __DIR__ . "/../iconos-web";
+        $origenIconos = normalizar_ruta($origenIconos);
+        $destinoIconos = $rutaRaiz . "/iconos-web";
+        $destinoIconos = normalizar_ruta($destinoIconos);
+        
+        if (!file_exists($destinoIconos)) {
+            copiarCarpeta($origenIconos, $destinoIconos);
         }
         $archivo = "$directorio/headIconos.php";
         // crea el archivo headIconos.php
@@ -124,16 +105,54 @@ if ($favicon) {
         // crea el archivo de verificacion de sesion
         $creaverificasesion = "$directorio/verificar_sesion.php";
         $contenido = "<?php
-session_start();
-// Verificar si la sesión está activa
-// Obtener información del usuario para uso en las páginas
-// Usando operador de fusión de null (??) o verificando con isset para evitar avisos
-\$usuario_id = \$_SESSION['usuario_id'] ?? 0; // Asignar 0 si no está definido
-\$usuario_nombre = \$_SESSION['usuario_nombre'] ?? 'sin login';
-\$usuario_perfil = \$_SESSION['usuario_perfil'] ?? '';
+    if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-// Otras variables de sesión según sea necesario
-// ";
+    // Determinar la ruta relativa al login de forma dinámica
+    \$script_path = str_replace('\\\\', '/', \$_SERVER['SCRIPT_NAME']);
+    \$accesos_pos = strpos(\$script_path, '/accesos/');
+    
+    if (\$accesos_pos !== false) {
+        // Si estamos dentro de subcarpetas de accesos
+        \$depth = substr_count(substr(\$script_path, \$accesos_pos + 9), '/');
+        \$prefix = str_repeat('../', \$depth + 1);
+    } else {
+        // Raíz o subcarpetas fuera de accesos
+        \$prefix = './';
+        if (strpos(\$script_path, '/vistas/') !== false) \$prefix = '../';
+    }
+
+    \$ruta_login = \$prefix . 'accesos/vistas/vista_login.php';
+    \$ruta_cambiar_password = \$prefix . 'accesos/vistas/vista_cambiar_password.php';
+
+    // Verificar si el usuario está autenticado
+    if (!isset(\$_SESSION['usuario_id'])) {
+        header(\"Location: \$ruta_login\");
+        exit;
+    }
+
+    // Verificar cambio de clave obligatorio
+    if (isset(\$_SESSION['cambio_clave_obligatorio']) && (\$_SESSION['cambio_clave_obligatorio'] == 1 || \$_SESSION['cambio_clave_obligatorio'] === '1')) {
+        if (basename(\$_SERVER['PHP_SELF']) !== 'vista_cambiar_password.php') {
+            header(\"Location: \$ruta_cambiar_password\");
+            exit;
+        }
+    }
+
+    \$usuario_id = \$_SESSION['usuario_id'] ?? 0;
+    \$usuario_nombre = \$_SESSION['usuario_nombre'] ?? 'Invitado';
+    \$usuario_perfil = \$_SESSION['usuario_perfil'] ?? '';
+
+    // Cargar variables de entorno (marca, logo, etc)
+    if (file_exists(\$prefix . '.env')) {
+        \$env = parse_ini_file(\$prefix . '.env');
+        if (\$env) {
+            foreach (\$env as \$key => \$value) {
+                putenv(\"\$key=\$value\");
+                \$_ENV[\$key] = \$value;
+            }
+        }
+    }
+    ?>";
         crearArchivo($creaverificasesion, $contenido);
     }
 
@@ -167,17 +186,30 @@ session_start();
         }
 
         // crea archivo de headIcon.php para el modulo de accesos
-        generar_headIconos($rutaBase);
+        // Crear headIconos.php pasando la ruta raíz para la copia de iconos
+        generar_headIconos($rutaBase, $ruta);
  
-        // Crear el archivo index.php
-        $contenido = "<?php\n// Redirigir a la vista del menú dinámico\nheader('Location: accesos/vistas/vista_menu_principal.php');\nexit();";
+        // Crear el archivo index.php raíz con validación de sesión
         $rutaPrincipalProyecto = rtrim($ruta, '/') . '/index.php';
-        file_put_contents($rutaPrincipalProyecto, $contenido);
+        $contenido = "<?php
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-        $rutaArray = explode('\\', $ruta); // Separar por '\'
+// Verificar si el usuario está autenticado
+if (!isset(\$_SESSION['usuario_id'])) {
+    header('Location: accesos/vistas/vista_login.php');
+    exit();
+}
+
+// Redirigir a la vista del menú dinámico si está autenticado
+header('Location: accesos/vistas/vista_menu_principal.php');
+exit();";
+        file_put_contents($rutaPrincipalProyecto, $contenido);
+        // Obtener el nombre de la carpeta del proyecto (último segmento de la ruta)
+        $ruta_norm = str_replace('\\', '/', $ruta);
+        $rutaArray = explode('/', rtrim($ruta_norm, '/'));
         $proyecto = end($rutaArray);
-        $rutaProyecto = $proyecto.'/accesos/vistas';
-        actualizaRutaProgramas($rutaProyecto,$conexion);
+        // Actualizar rutas de forma inteligente (Administración vs CRUDs)
+        actualizaRutaProgramas($proyecto, $conexion);
 
 
         $directorio = $rutaBase . '/modelos'; // Directorio a escanear
@@ -202,7 +234,7 @@ session_start();
         $vista_menu_principal = 'vista_menu_principal.php';
         $archivo = listarArchivos($path_vista_menu_principal, $vista_menu_principal);
 
-        error_log("archivo Menu Principal: $$archivo[0]"); 
+        error_log("archivo Menu Principal: $archivo[0]"); 
         reemplazarEnArchivo($archivo[0], $nombremenubuscar, $nombremenureemplazo);
 
         // remplaza en vista_roles_programas
@@ -236,8 +268,9 @@ try {
     }
 
     // Actualizar la ruta de programas y obtener la respuesta
-    $rutaArray = explode('\\', $ruta); // Separar por '\'
-
+    // Obtener el nombre de la carpeta del proyecto de forma robusta
+    $ruta_norm = str_replace('\\', '/', $ruta);
+    $rutaArray = explode('/', rtrim($ruta_norm, '/'));
     $proyecto = end($rutaArray);
     $rutaProyecto = $proyecto . '/accesos/vistas';
 
@@ -250,7 +283,12 @@ try {
     // Se crea las carpetas del menú principal
     crearMenuPrincipal($ruta, $conexion);
 
-    $actualizaRutaResponse = actualizaRutaProgramas($rutaProyecto, $conexion);
+    // Sincronizar automáticamente los programas (CRUDs) generados
+    $rutaVistasSinc = $ruta . '/vistas';
+    $rutaRelativaVistas = '/' . $proyecto . '/vistas';
+    sincronizar_programas_vistas($conexion, $rutaVistasSinc, $rutaRelativaVistas);
+
+    $actualizaRutaResponse = actualizaRutaProgramas($proyecto, $conexion);
     // crea archivo de configuracion
     genera_configuracion($nombreproyecto, $ruta, $proyecto);
 

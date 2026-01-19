@@ -31,7 +31,7 @@ class ModeloAcc_usuario {
         $camposBusqueda[] = "`username`";
         $camposBusqueda[] = "`fullname`";
         $camposBusqueda[] = "`correo`";
-        $camposBusqueda[] = "`nombre_estado`";
+        $camposBusqueda[] = "`estado`";
         $camposBusqueda[] = "`fecha_creacion`";
         $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ?";
         $stmt = $this->conexion->prepare($query);
@@ -41,9 +41,12 @@ class ModeloAcc_usuario {
         $resultado = $stmt->get_result();
         return $resultado ? $resultado->fetch_assoc()['total'] : false;
     }
-    public function obtenerTodos($registrosPorPagina, $offset) {
-        $query = "SELECT * FROM acc_usuario";
-        $query .= " LIMIT ? OFFSET ?";
+    public function obtenerTodos($registrosPorPagina, $offset, $orderBy = null, $orderDir = 'DESC') {
+        $columnasPermitidas = ['id_usuario', 'username', 'fullname', 'correo', 'estado', 'fecha_creacion'];
+        $orderBy = in_array($orderBy, $columnasPermitidas) ? $orderBy : 'id_usuario';
+        $orderDir = strtoupper($orderDir) === 'ASC' ? 'ASC' : 'DESC';
+
+        $query = "SELECT * FROM v_acc_usuario ORDER BY $orderBy $orderDir LIMIT ? OFFSET ?";
         $stmt = $this->conexion->prepare($query);
         $stmt->bind_param('ii', $registrosPorPagina, $offset);
         $stmt->execute();
@@ -66,45 +69,47 @@ class ModeloAcc_usuario {
         $tipos = '';
         $params = [];
 
-        if (empty($datos['username'])) {
-            throw new Exception('El campo username es requerido.');
-        } elseif (isset($datos['username'])) {
+        if (array_key_exists('username', $datos)) {
+            if ($datos['username'] === '') throw new Exception('El campo username es requerido.');
             $campos[] = '`username`';
             $valores[] = '?';
             $params[] = $datos['username'];
             $tipos .= 's';
         }
-        if (empty($datos['fullname'])) {
-            throw new Exception('El campo fullname es requerido.');
-        } elseif (isset($datos['fullname'])) {
+        if (array_key_exists('fullname', $datos)) {
+            if ($datos['fullname'] === '') throw new Exception('El campo fullname es requerido.');
             $campos[] = '`fullname`';
             $valores[] = '?';
             $params[] = $datos['fullname'];
             $tipos .= 's';
         }
-        if (!empty($datos['correo'])) {
-          if (isset($datos['correo'])) {
+        if (array_key_exists('correo', $datos)) {
             $campos[] = '`correo`';
             $valores[] = '?';
             $params[] = $datos['correo'];
             $tipos .= 's';
-           }
         }
-        if (!empty($datos['password'])) {
-          if (isset($datos['password'])) {
+        if (array_key_exists('password', $datos) && $datos['password'] !== '') {
             $campos[] = '`password`';
             $valores[] = '?';
             $params[] = password_hash($datos['password'], PASSWORD_DEFAULT);
             $tipos .= 's';
-           }
         }
-        if (empty($datos['estado'])) {
-            throw new Exception('El campo estado es requerido.');
-        } elseif (isset($datos['estado'])) {
+        if (array_key_exists('estado', $datos)) {
+            if ($datos['estado'] === '') throw new Exception('El campo estado es requerido.');
             $campos[] = '`estado`';
             $valores[] = '?';
             $params[] = $datos['estado'];
             $tipos .= 's';
+        }
+
+        // Datos de auditoría
+        $usuario_id = $_SESSION['usuario_id'] ?? null;
+        if ($usuario_id) {
+            $campos[] = '`usuario_id_inserto`';
+            $valores[] = '?';
+            $params[] = $usuario_id;
+            $tipos .= 'i';
         }
 
         $query = "INSERT INTO acc_usuario (" . implode(', ', $campos) . ") VALUES (" . implode(', ', $valores) . ")";
@@ -122,40 +127,41 @@ class ModeloAcc_usuario {
         $tipos_pk = 'i'; // Para la llave primaria
         $params = [];
 
-        if (empty($datos['username'])) {
-            throw new Exception('El campo username es requerido.');
-        } elseif (isset($datos['username'])) {
+        if (array_key_exists('username', $datos)) {
+            if ($datos['username'] === '') throw new Exception('El campo username es requerido.');
             $actualizaciones[] = "`username` = ?";
             $params[] = $datos['username'];
             $tipos .= 's';
         }
-        if (empty($datos['fullname'])) {
-            throw new Exception('El campo fullname es requerido.');
-        } elseif (isset($datos['fullname'])) {
+        if (array_key_exists('fullname', $datos)) {
+            if ($datos['fullname'] === '') throw new Exception('El campo fullname es requerido.');
             $actualizaciones[] = "`fullname` = ?";
             $params[] = $datos['fullname'];
             $tipos .= 's';
         }
-        if (!empty($datos['correo'])) {
-            if (isset($datos['correo'])) {
+        if (array_key_exists('correo', $datos)) {
             $actualizaciones[] = "`correo` = ?";
             $params[] = $datos['correo'];
             $tipos .= 's';
         }
-        }
-        if (!empty($datos['password'])) {
-            if (isset($datos['password'])) {
+        if (array_key_exists('password', $datos) && $datos['password'] !== '') {
             $actualizaciones[] = "`password` = ?";
             $params[] = password_hash($datos['password'], PASSWORD_DEFAULT);
             $tipos .= 's';
         }
-        }
-        if (empty($datos['estado'])) {
-            throw new Exception('El campo estado es requerido.');
-        } elseif (isset($datos['estado'])) {
+        if (array_key_exists('estado', $datos)) {
+            if ($datos['estado'] === '') throw new Exception('El campo estado es requerido.');
             $actualizaciones[] = "`estado` = ?";
             $params[] = $datos['estado'];
             $tipos .= 's';
+        }
+
+        // Datos de auditoría
+        $usuario_id = $_SESSION['usuario_id'] ?? null;
+        if ($usuario_id) {
+            $actualizaciones[] = "`usuario_id_actualizo` = ?";
+            $params[] = $usuario_id;
+            $tipos .= 'i';
         }
 
         $params[] = $id;
@@ -174,16 +180,20 @@ class ModeloAcc_usuario {
         $stmt->bind_param('i', $id);
         return $stmt->execute();
     }
-    public function buscar($termino, $registrosPorPagina, $offset) {
+    public function buscar($termino, $registrosPorPagina, $offset, $orderBy = null, $orderDir = 'DESC') {
+        $columnasPermitidas = ['id_usuario', 'username', 'fullname', 'correo', 'estado', 'fecha_creacion'];
+        $orderBy = in_array($orderBy, $columnasPermitidas) ? $orderBy : 'id_usuario';
+        $orderDir = strtoupper($orderDir) === 'ASC' ? 'ASC' : 'DESC';
+
         $query = "SELECT * FROM v_acc_usuario WHERE ";
         $camposBusqueda = [];
         $camposBusqueda[] = "`id_usuario`";
         $camposBusqueda[] = "`username`";
         $camposBusqueda[] = "`fullname`";
         $camposBusqueda[] = "`correo`";
-        $camposBusqueda[] = "`estado_nombre`";
+        $camposBusqueda[] = "`estado`";
         $camposBusqueda[] = "`fecha_creacion`";
-        $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ? LIMIT ? OFFSET ?";
+        $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ? ORDER BY $orderBy $orderDir LIMIT ? OFFSET ?";
         $stmt = $this->conexion->prepare($query);
         $termino = "%" . $termino . "%";
         $stmt->bind_param('sii', $termino, $registrosPorPagina, $offset);
@@ -199,7 +209,7 @@ class ModeloAcc_usuario {
             $camposBusqueda[] = "`username`";
             $camposBusqueda[] = "`fullname`";
             $camposBusqueda[] = "`correo`";
-            $camposBusqueda[] = "`estado_nombre`";
+            $camposBusqueda[] = "`estado`";
             $camposBusqueda[] = "`fecha_creacion`";
             $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ?";
             if (!$this->conexion) {
@@ -279,7 +289,7 @@ class ModeloAcc_usuario {
         }
     
         public function verificarCredenciales($username, $password) {
-            $query = "SELECT * FROM acc_usuario WHERE username = ? AND estado = 'A'";
+            $query = "SELECT * FROM acc_usuario WHERE username = ? AND estado = 'activo'";
             $stmt = $this->conexion->prepare($query);
             $stmt->bind_param('s', $username);
             $stmt->execute();
@@ -323,7 +333,7 @@ class ModeloAcc_usuario {
                 'correo' => $usuario['correo'],
                 'password' => $nueva_clave,
                 'estado' => $usuario['estado'],
-                'cambio_clave_obligatorio' => 'S' // Añadir marcador para cambio obligatorio
+                'cambio_clave_obligatorio' => 1 // 1 = TRUE
             ];
             
             // Actualizar datos del usuario con nueva contraseña y marcador de cambio obligatorio
@@ -348,8 +358,8 @@ class ModeloAcc_usuario {
             $tipos .= 's';
             
             $actualizaciones[] = "`cambio_clave_obligatorio` = ?";
-            $params[] = 'S';  // S = Sí, debe cambiar la clave
-            $tipos .= 's';
+            $params[] = 1;  // 1 = Sí, debe cambiar la clave
+            $tipos .= 'i';
     
             $params[] = $id;
             $tipos .= $tipos_pk;
@@ -373,8 +383,8 @@ class ModeloAcc_usuario {
             $tipos .= 's';
             
             $actualizaciones[] = "`cambio_clave_obligatorio` = ?";
-            $params[] = 'N';  // N = No es necesario cambiar la clave
-            $tipos .= 's';
+            $params[] = 0;  // 0 = No es necesario cambiar la clave
+            $tipos .= 'i';
     
             $params[] = $id_usuario;
             $tipos .= $tipos_pk;
@@ -394,7 +404,7 @@ class ModeloAcc_usuario {
             $stmt->execute();
             $resultado = $stmt->get_result();
             $data = $resultado ? $resultado->fetch_assoc() : false;
-            return ($data && $data['cambio_clave_obligatorio'] === 'S');
+            return ($data && (int)$data['cambio_clave_obligatorio'] === 1);
         }
 
 }

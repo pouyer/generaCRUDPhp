@@ -6,51 +6,63 @@ include "../include/funciones_utilidades.php";
 
 // Modifica el Login para que valide coneccionsi el usuario esta conectado
 function ModificaIndex($ruta) {
-
     $ruta = normalizar_ruta($ruta);
-    // Crear el archivo index.php
     $rutaPrincipalProyecto = rtrim($ruta, '/') . '/index.php';
     $contenido = "<?php
-    session_start();
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-    // Verificar si el usuario está autenticado
-    if (!isset(\$_SESSION['autenticado']) || \$_SESSION['autenticado'] !== true) {
-        // Si no está autenticado, redirigir al login
-        header('Location: accesos/vistas/vista_login.php');
-        exit();
-    }
-
-    // Verificar si se requiere cambio de contraseña obligatorio
-    if (isset(\$_SESSION['cambio_clave_obligatorio']) && \$_SESSION['cambio_clave_obligatorio'] === true) {
-        // Si se requiere cambio de contraseña, redirigir a la página de cambio
-        header('Location: accesos/vistas/vista_cambiar_password.php');
-        exit();
-    }
-
-    // Si el usuario está autenticado y no requiere cambio de contraseña, redirigir al menú principal
-    header('Location: accesos/vistas/vista_menu_principal.php');
+// Verificar si el usuario está autenticado
+if (!isset(\$_SESSION['usuario_id'])) {
+    header('Location: accesos/vistas/vista_login.php');
     exit();
-        
-    ";
-    // Crear el archivo de index.php para el modulo de accesos
+}
+
+// Redirigir a la vista del menú dinámico si está autenticado
+header('Location: accesos/vistas/vista_menu_principal.php');
+exit();";
     crearArchivo($rutaPrincipalProyecto, $contenido);
-}    
+}
 
 // Modifica el archivo verificar_sesion.php para que verifique si el usuario ya esta conectado y lo redirija a la pantalla de inicio
 function ModificaVerificarSesion($directorio) {
-    // crea el archivo de verificacion de sesion
     $creaverificasesion = "$directorio/accesos/verificar_sesion.php";
     $contenido = "<?php
-    session_start();
+    if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-    // Cargar environment si existe (para logo y otros assets)
-    // Ajustar ruta relativa buscando hacia arriba
-    \$dir = __DIR__;
-    while (!file_exists(\$dir . '/.env') && dirname(\$dir) !== \$dir) {
-        \$dir = dirname(\$dir);
+    // Determinar la ruta relativa al login de forma dinámica
+    \$script_path = str_replace('\\\\', '/', \$_SERVER['SCRIPT_NAME']);
+    \$accesos_pos = strpos(\$script_path, '/accesos/');
+    
+    if (\$accesos_pos !== false) {
+        \$depth = substr_count(substr(\$script_path, \$accesos_pos + 9), '/');
+        \$prefix = str_repeat('../', \$depth + 1);
+    } else {
+        \$prefix = './';
+        if (strpos(\$script_path, '/vistas/') !== false) \$prefix = '../';
     }
-    if (file_exists(\$dir . '/.env')) {
-        \$env = parse_ini_file(\$dir . '/.env');
+
+    \$ruta_login = \$prefix . 'accesos/vistas/vista_login.php';
+    \$ruta_cambiar_password = \$prefix . 'accesos/vistas/vista_cambiar_password.php';
+
+    if (!isset(\$_SESSION['usuario_id'])) {
+        header(\"Location: \$ruta_login\");
+        exit;
+    }
+
+    if (isset(\$_SESSION['cambio_clave_obligatorio']) && (\$_SESSION['cambio_clave_obligatorio'] == 1 || \$_SESSION['cambio_clave_obligatorio'] === '1')) {
+        if (basename(\$_SERVER['PHP_SELF']) !== 'vista_cambiar_password.php') {
+            header(\"Location: \$ruta_cambiar_password\");
+            exit;
+        }
+    }
+
+    \$usuario_id = \$_SESSION['usuario_id'] ?? 0;
+    \$usuario_nombre = \$_SESSION['usuario_nombre'] ?? 'Invitado';
+    \$usuario_perfil = \$_SESSION['usuario_perfil'] ?? '';
+
+    // Cargar variables de entorno (marca, logo, etc)
+    if (file_exists(\$prefix . '.env')) {
+        \$env = parse_ini_file(\$prefix . '.env');
         if (\$env) {
             foreach (\$env as \$key => \$value) {
                 putenv(\"\$key=\$value\");
@@ -58,64 +70,14 @@ function ModificaVerificarSesion($directorio) {
             }
         }
     }
-
-    // Determinar la ruta base del sitio
-    \$ruta_base = '';
-    \$script_name = \$_SERVER['SCRIPT_NAME'];
-    \$document_root = \$_SERVER['DOCUMENT_ROOT'];
-
-    // Convertir a formato de ruta del sistema
-    \$script_path = str_replace('/', DIRECTORY_SEPARATOR, \$script_name);
-    \$document_root = str_replace('/', DIRECTORY_SEPARATOR, \$document_root);
-
-    // Obtener la carpeta base del proyecto
-    \$base_dir = str_replace(\$document_root, '', dirname(\$script_path));
-    \$project_directory = substr(\$base_dir, 0, strpos(\$base_dir, DIRECTORY_SEPARATOR, 1) ?: strlen(\$base_dir));
-
-    // Determinar la profundidad de la carpeta actual
-    \$current_script = \$_SERVER['SCRIPT_FILENAME'];
-    \$accesos_path = \$document_root . \$project_directory . DIRECTORY_SEPARATOR . 'accesos';
-    \$depth = substr_count(str_replace(\$accesos_path, '', dirname(\$current_script)), DIRECTORY_SEPARATOR) + 1;
-
-    // Construir la ruta relativa según la profundidad
-    \$ruta_relativa = '';
-    for (\$i = 0; \$i < \$depth; \$i++) {
-        \$ruta_relativa .= '../';
-    }
-
-    // Definir rutas para las vistas
-    \$ruta_login = \$ruta_relativa . 'accesos/vistas/vista_login.php';
-    \$ruta_cambiar_password = \$ruta_relativa . 'accesos/vistas/vista_cambiar_password.php';
-
-    // Verificar si el usuario está autenticado
-    if (!isset(\$_SESSION['usuario_id'])) {
-        header('Location: \$ruta_login');
-        exit;
-    }
-
-    // Si el usuario está autenticado, verificar si necesita cambiar la contraseña
-    if (isset(\$_SESSION['cambio_clave_obligatorio']) && \$_SESSION['cambio_clave_obligatorio'] === 'S') {
-        if (basename(\$_SERVER['PHP_SELF']) !== 'vista_cambiar_password.php') {
-            header('Location: \$ruta_cambiar_password');
-            exit;
-        }
-    }
-
-    // Obtener información del usuario para uso en las páginas
-    // Usando operador de fusión de null (??) o verificando con isset para evitar avisos
-    \$usuario_id = \$_SESSION['usuario_id'] ?? 0;
-    \$usuario_nombre = \$_SESSION['usuario_nombre'] ?? '';
-    \$usuario_perfil = \$_SESSION['usuario_perfil'] ?? '';
-
-    // Otras variables de sesión según sea necesario
-    ?>  ";
+    ?>";
     crearArchivo($creaverificasesion, $contenido);
 }
 // crea pantalla de vista_login.php
 function crearVistaLogin($directorio) {
     $archivoVistaLogin = "$directorio/accesos/vistas/vista_login.php";
     $contenido = "<?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 // Cargar environment si existe
 if (file_exists(__DIR__ . '/../../.env')) {
@@ -232,7 +194,7 @@ unset(\$_SESSION['restablecer_exito']);
 function crearControladorLogin($directorio) {
     $archivoControladorLogin = "$directorio/accesos/controladores/controlador_login.php";
     $contenido = "<?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 require_once '../modelos/modelo_acc_usuario.php';
 require_once '../modelos/modelo_acc_log.php';
 require_once '../../include/SimpleSMTP.php'; // Incluir la clase SMTP
@@ -281,6 +243,7 @@ class ControladorLogin {
             // Obtener perfil del usuario (roles)
             \$roles = \$this->modelo->obtenerRolesPorUsuario(\$usuario['id_usuario']);
             \$_SESSION['usuario_perfil'] = !empty(\$roles) ? \$roles[0]['nombre_rol'] : 'Sin perfil';
+            \$_SESSION['cambio_clave_obligatorio'] = \$usuario['cambio_clave_obligatorio'] ?? 0;
             // Cargar permisos granulares
             \$permisos = [];
             foreach (\$roles as \$rol) {
@@ -310,6 +273,9 @@ class ControladorLogin {
             // Registrar log de acceso
             \$this->modeloLog->registrar(\$usuario['id_usuario'], 'LOGIN', 'acc_usuario', 'Inicio de sesión exitoso');
             
+            if (\$_SESSION['cambio_clave_obligatorio'] == 1 || \$_SESSION['cambio_clave_obligatorio'] === '1') {
+                return 'cambio_clave';
+            }
             return true;
         }
         
@@ -492,9 +458,11 @@ if (isset(\$_GET['action'])) {
                 );
                 
                 if (\$resultado['exito']) {
-                    \$_SESSION['cambio_clave_obligatorio'] = 'N';
+                    \$_SESSION['cambio_clave_obligatorio'] = 0;
                     \$_SESSION['password_exito'] = \$resultado['mensaje'];
-                    header('Location: ../../index.php');
+                    \$source = \$_POST['source'] ?? '';
+                    \$url = '../vistas/vista_cambiar_password.php?success=1' . (\$source ? '&source=' . urlencode(\$source) : '');
+                    header(\"Location: \$url\");
                 } else {
                     \$_SESSION['password_error'] = \$resultado['mensaje'];
                     header('Location: ../vistas/vista_cambiar_password.php');
@@ -510,8 +478,8 @@ if (isset(\$_GET['action'])) {
                     'fullname' => \$_POST['fullname'] ?? '',
                     'correo' => \$_POST['correo'] ?? '',
                     'password' => \$_POST['password'] ?? '',
-                    'estado' => 'A', // Por defecto activo
-                    'cambio_clave_obligatorio' => 'N' // No obligatorio para nuevos registros
+                    'estado' => 'activo', // Por defecto activo
+                    'cambio_clave_obligatorio' => 0 // No obligatorio para nuevos registros
                 ];
                 
                 \$resultado = \$controlador->registrarUsuario(\$datos);
@@ -540,7 +508,7 @@ if (isset(\$_GET['action'])) {
 function crearVistaCambiarPassword($directorio) {
     $archivoVistaCambiarPassword = "$directorio/accesos/vistas/vista_cambiar_password.php";
     $contenido = "<?php
-    session_start();
+    if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
     // Verificar si el usuario está autenticado
     if (!isset(\$_SESSION['autenticado']) || \$_SESSION['autenticado'] !== true) {
@@ -607,9 +575,11 @@ function crearVistaCambiarPassword($directorio) {
                     <div class='alert alert-success'><?php echo \$password_exito; ?></div>
                 <?php endif; ?>
                 
+                <?php if (!\$password_exito): ?>
                 <p>Usuario: <strong><?php echo htmlspecialchars(\$usuario_username); ?></strong></p>
                 
                 <form action='../controladores/controlador_login.php?action=cambiar_password' method='POST' id='formCambiar'>
+                    <input type='hidden' name='source' value='<?php echo htmlspecialchars(\$_GET['source'] ?? ''); ?>'>
                     <div class='form-group'>
                         <label for='password_actual'>Contraseña Actual:</label>
                         <input type='password' class='form-control' id='password_actual' name='password_actual' required>
@@ -624,10 +594,20 @@ function crearVistaCambiarPassword($directorio) {
                     </div>
                     <button type='submit' class='btn btn-primary btn-block'>Cambiar Contraseña</button>
                 </form>
+                <?php endif; ?>
                 
-                <?php if (!\$cambio_obligatorio): ?>
+                <?php 
+                // No mostrar volver al inicio si es cambio obligatorio o si viene del menú
+                \$es_menu = isset(\$_GET['source']) && \$_GET['source'] === 'menu';
+                if (\$cambio_obligatorio != 1 && !\$es_menu): ?>
                     <div class='text-center mt-3'>
-                        <a href='../../index.php'>Volver al inicio</a>
+                        <a href='../../index.php' class='btn btn-link'>Volver al inicio</a>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if (\$password_exito && (\$cambio_obligatorio == 1 || \$cambio_obligatorio === '1')): ?>
+                    <div class='text-center mt-3'>
+                        <a href='../../index.php' class='btn btn-success'>Continuar al Sistema</a>
                     </div>
                 <?php endif; ?>
             </div>
@@ -657,7 +637,7 @@ function crearVistaCambiarPassword($directorio) {
 function crearVistaRestablecerPassword($directorio) {
     $archivoVistaRestablecer = "$directorio/accesos/vistas/vista_restablecer_password.php";
     $contenido = "<?php
-    session_start();
+    if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
     // Obtener mensajes de sesión
     \$restablecer_error = \$_SESSION['restablecer_error'] ?? null;
@@ -723,7 +703,7 @@ function crearVistaRestablecerPassword($directorio) {
 function crearVistaRegistro($directorio) {
     $archivoVistaRegistro = "$directorio/accesos/vistas/vista_registro.php";
     $contenido = "<?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 // Verificar si el usuario ya está autenticado
 if (isset(\$_SESSION['autenticado']) && \$_SESSION['autenticado'] === true) {

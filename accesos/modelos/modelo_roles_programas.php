@@ -28,7 +28,7 @@ class ModeloRolesProgramas {
     public function obtenerProgramasNoAsignados($id_rol) {
         if (!$id_rol) return [];
         $sql = "SELECT id_programas, nombre_menu, icono FROM acc_programa WHERE id_programas NOT IN 
-                (SELECT id_programas FROM acc_programa_x_rol r WHERE r.id_rol = ?) AND estado = 'A' ORDER BY nombre_menu ASC";
+                (SELECT id_programas FROM acc_programa_x_rol r WHERE r.id_rol = ?) AND estado = 'activo' ORDER BY nombre_menu ASC";
         $stmt = $this->conexion->prepare($sql);
         $stmt->bind_param('i', $id_rol);
         $stmt->execute();
@@ -61,7 +61,8 @@ class ModeloRolesProgramas {
             $stmtDelete->execute();
 
             if (!empty($programas)) {
-                $sqlInsert = "INSERT INTO acc_programa_x_rol (id_programas, id_rol, permiso_insertar, permiso_actualizar, permiso_eliminar, permiso_exportar) VALUES (?, ?, ?, ?, ?, ?)";
+                $usuario_id = $_SESSION['usuario_id'] ?? null;
+                $sqlInsert = "INSERT INTO acc_programa_x_rol (id_programas, id_rol, permiso_insertar, permiso_actualizar, permiso_eliminar, permiso_exportar, usuario_id_inserto) VALUES (?, ?, ?, ?, ?, ?, ?)";
                 $stmtInsert = $this->conexion->prepare($sqlInsert);
                 foreach ($programas as $prog) {
                     // Si $prog es un array (viene con permisos)
@@ -76,7 +77,7 @@ class ModeloRolesProgramas {
                         $id_prog = $prog;
                         $ins = $upd = $del = $exp = 1;
                     }
-                    $stmtInsert->bind_param('iiiiii', $id_prog, $id_rol, $ins, $upd, $del, $exp);
+                    $stmtInsert->bind_param('iiiiiii', $id_prog, $id_rol, $ins, $upd, $del, $exp, $usuario_id);
                     $stmtInsert->execute();
                 }
             }

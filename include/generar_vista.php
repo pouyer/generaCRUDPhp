@@ -4,19 +4,40 @@ require_once __DIR__ . '/funciones_utilidades.php';
 function generar_vista($tabla, $campos, $directorio, $es_vista, $config = []) {
     $nombreClase = ucfirst($tabla);
     
+    // Función interna para identificar campos que deben excluirse de los modales (auditoría/automáticos)
+    $esCampoExcluido = function($campo) {
+        $nombre = strtolower($campo['Field']);
+        $extra = strtolower($campo['Extra']);
+        $default = strtolower($campo['Default'] ?? '');
+        $key = strtoupper($campo['Key']);
+
+        // 1. Excluir siempre Claves Primarias de los formularios (se manejan vía hidden o auto)
+        if ($key == 'PRI' || $extra == 'auto_increment') return true;
+
+        // 2. Excluir timestamps automáticos (insensible a mayúsculas y paréntesis)
+        if (strpos($extra, 'current_timestamp') !== false) return true;
+        if (strpos($default, 'current_timestamp') !== false) return true;
+
+        // 3. Excluir por nombre de campo de auditoría común
+        $nombresNegros = [
+            'fecha_insercion', 'fecha_actualizacion', 'fecha_registro', 
+            'fecha_creacion', 'fecha_crea', 'fecha_actualiza',
+            'usuario_id_inserto', 'usuario_id_actualizo', 'usuario_id_creo',
+            'usuario_id_crea', 'usuario_id_actualiza'
+        ];
+        if (in_array($nombre, $nombresNegros)) return true;
+
+        return false;
+    };
+
     // Filtrar campos para formulario Crear
-    $camposValidosCrear = array_filter($campos, function($campo) {
-        return !($campo['Extra'] == 'auto_increment' || 
-                 $campo['Extra'] == 'on update current_timestamp()' || 
-                 $campo['Key'] == 'PRI' || 
-                 $campo['Default'] == 'current_timestamp()');
+    $camposValidosCrear = array_filter($campos, function($campo) use ($esCampoExcluido) {
+        return !$esCampoExcluido($campo);
     });
 
-    // Filtrar campos para formulario Actualizar (excluyendo PK y timestamp auto)
-    $camposValidosActualizar = array_filter($campos, function($campo) {
-        return ($campo['Key'] != 'PRI' && 
-                $campo['Default'] != 'current_timestamp()' && 
-                $campo['Extra'] != 'on update current_timestamp()');
+    // Filtrar campos para formulario Actualizar
+    $camposValidosActualizar = array_filter($campos, function($campo) use ($esCampoExcluido) {
+        return !$esCampoExcluido($campo);
     });
 
     $datosPlantilla = [

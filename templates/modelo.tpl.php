@@ -19,15 +19,21 @@
     /**
      * Modelo para la tabla <?php echo $tabla; ?>
      */
-
 <?php
-// Ordenar campos según la configuración si existe
-if (isset($config['fields'])) {
-    usort($campos, function($a, $b) use ($config) {
-        $orderA = $config['fields'][$a['Field']]['order'] ?? 999;
-        $orderB = $config['fields'][$b['Field']]['order'] ?? 999;
-        return $orderA - $orderB;
-    });
+// Preparar columnas permitidas para validación de ORDER BY
+$allCols = array_map(function($c) use($tabla) { return "'`{$tabla}`.`{$c['Field']}`'"; }, $campos);
+foreach($relaciones as $c => $r) {
+    $allCols[] = "'`{$r['parent']}`.`{$r['display']}`'";
+}
+
+// Preparar el ordenamiento predeterminado (hasta 3 niveles)
+$defaultSortItems = [];
+if (isset($config['sort']) && !empty($config['sort'])) {
+    foreach ($config['sort'] as $sort) {
+        $defaultSortItems[] = "`{$tabla}`.`{$sort['field']}` {$sort['dir']}";
+    }
+} else {
+    $defaultSortItems[] = "`{$tabla}`.`{$llavePrimaria}` DESC";
 }
 ?>
 require_once '../<?php echo $archivo_conexion; ?>';
@@ -43,9 +49,17 @@ class Modelo<?php echo $nombreClase; ?> {
     }
 
     // Métodos para obtener datos relacionados (Comboboxes)
-<?php foreach ($relaciones as $campo => $config): ?>
+<?php foreach ($relaciones as $campo => $configRel): 
+    $orderByRel = $configRel['sort_by'] ?? $configRel['display'];
+?>
     public function obtenerRelacionado_<?php echo $campo; ?>() {
-        $sql = "SELECT `<?php echo $config['parentid']; ?>` as id, `<?php echo $config['display']; ?>` as texto FROM `<?php echo $config['parent']; ?>` ORDER BY `<?php echo $config['display']; ?>` ASC";
+        <?php 
+        $whereSQL = "";
+        if (!empty($configRel['where'])) {
+            $whereSQL = " WHERE " . $configRel['where'];
+        }
+        ?>
+        $sql = "SELECT `<?php echo $configRel['parentid']; ?>` as id, `<?php echo $configRel['display']; ?>` as texto FROM `<?php echo $configRel['parent']; ?>` <?php echo $whereSQL; ?> ORDER BY `<?php echo $orderByRel; ?>` ASC";
         $resultado = $this->conexion->query($sql);
         return $resultado ? $resultado->fetch_all(MYSQLI_ASSOC) : [];
     }
@@ -86,27 +100,29 @@ class Modelo<?php echo $nombreClase; ?> {
     }
 
     // Obtener todos los registros
-    public function obtenerTodos($registrosPorPagina, $offset, $orderBy = '<?php echo $llavePrimaria; ?>', $orderDir = 'DESC') {
+    public function obtenerTodos($registrosPorPagina, $offset, $orderBy = null, $orderDir = 'DESC') {
         // Validar columnas permitidas para evitar inyección SQL
-        $allowedColumns = [<?php 
-            $allCols = array_map(function($c) use($tabla) { return "'`{$tabla}`.`{$c['Field']}`'"; }, $campos);
-            foreach($relaciones as $c => $r) {
-                $allCols[] = "'`{$r['parent']}`.`{$r['display']}`'";
-            }
-            echo implode(', ', $allCols);
-        ?>];
+        $allowedColumns = [<?php echo implode(', ', $allCols); ?>];
         
-        // Limpiar el nombre de la columna para la validación
-        $orderByClean = str_replace(['`', ' '], '', $orderBy);
-        $isValid = false;
-        foreach($allowedColumns as $ac) {
-            if (str_replace(['`', ' '], '', $ac) === $orderByClean) {
-                $isValid = true;
-                break;
+        $orderSQL = "";
+        $esValidoOrden = false;
+        if (!empty($orderBy)) {
+            $orderByClean = str_replace(['`', ' '], '', $orderBy);
+            foreach($allowedColumns as $ac) {
+                if (str_replace(['`', ' '], '', $ac) === $orderByClean) {
+                    $esValidoOrden = true;
+                    break;
+                }
+            }
+            if ($esValidoOrden) {
+                $orderSQL = " ORDER BY $orderBy $orderDir ";
             }
         }
-        
-        $orderSQL = $isValid ? " ORDER BY $orderBy $orderDir " : " ORDER BY `<?php echo $tabla; ?>`.`<?php echo $llavePrimaria; ?>` DESC ";
+
+        if (empty($orderSQL)) {
+            // Usar ordenamiento predeterminado (hasta 3 niveles)
+            $orderSQL = " ORDER BY <?php echo implode(', ', $defaultSortItems); ?> ";
+        }
 
         $query = "SELECT `<?php echo $tabla; ?>`.* <?php 
             foreach($relaciones as $campo => $config) {
@@ -156,49 +172,36 @@ class Modelo<?php echo $nombreClase; ?> {
     if ($campo['Field'] != $llavePrimaria && !in_array($campo['Field'], $camposAutoIncrement) && !in_array($campo['Field'], $camposCURRENT)): 
         $fieldName = $campo['Field'];
         $fieldType = $campo['Type'];
+        $isAuditField = (isset($config['fields'][$fieldName]['audit']) && ($config['fields'][$fieldName]['audit'] === 'insert' || $config['fields'][$fieldName]['audit'] === 'update'));
+        $isRequerido = in_array($fieldName, $camposRequeridos);
 ?>
-<?php if (in_array($fieldName, $camposRequeridos)): ?>
-<?php 
-    // Si el campo es de auditoría, no se debe validar como REQUERIDO en el modelo
-    // ya que el controlador lo inyecta automáticamente.
-    $isAuditField = (isset($config['fields'][$fieldName]['audit']) && ($config['fields'][$fieldName]['audit'] === 'insert' || $config['fields'][$fieldName]['audit'] === 'update'));
-?>
-<?php if ($isAuditField): ?>
-        // Campo de auditoria - Se inyecta desde el controlador
-        if (isset($datos['<?php echo $fieldName; ?>']) && $datos['<?php echo $fieldName; ?>'] !== '') {
-            $campos[] = '`<?php echo $fieldName; ?>`';
-            $valores[] = '?';
-<?php else: ?>
+        // Campo: <?php echo $fieldName; ?>
+
+<?php if ($isRequerido && !$isAuditField): ?>
         if (!isset($datos['<?php echo $fieldName; ?>']) || $datos['<?php echo $fieldName; ?>'] === '') {
             throw new Exception('El campo <?php echo $fieldName; ?> es requerido.');
-        } elseif (isset($datos['<?php echo $fieldName; ?>'])) {
+        }
+<?php endif; ?>
+        if (array_key_exists('<?php echo $fieldName; ?>', $datos)) {
             $campos[] = '`<?php echo $fieldName; ?>`';
             $valores[] = '?';
-<?php endif; ?>
-<?php else: ?>
-        if (isset($datos['<?php echo $fieldName; ?>']) && $datos['<?php echo $fieldName; ?>'] !== '') {
-          if (isset($datos['<?php echo $fieldName; ?>'])) {
-            $campos[] = '`<?php echo $fieldName; ?>`';
-            $valores[] = '?';
-<?php endif; ?>
 <?php
             // Lógica de tipos
-            if (strpos($fieldType, 'int') !== false) {
-                echo "            \$params[] = \$datos['$fieldName'];\n";
+            if (strpos($fieldType, 'int') !== false || strpos($fieldType, 'year') !== false) {
+                echo "            \$params[] = (\$datos['$fieldName'] === '' || \$datos['$fieldName'] === null) ? null : (int)\$datos['$fieldName'];\n";
                 echo "            \$tipos .= 'i';\n";
             } elseif (strpos($fieldType, 'float') !== false || strpos($fieldType, 'double') !== false || strpos($fieldType, 'decimal') !== false) {
-                echo "            \$params[] = \$datos['$fieldName'];\n";
+                echo "            \$params[] = (\$datos['$fieldName'] === '' || \$datos['$fieldName'] === null) ? null : (float)\$datos['$fieldName'];\n";
                 echo "            \$tipos .= 'd';\n";
             } elseif (strpos($fieldType, 'date') !== false || strpos($fieldType, 'datetime') !== false) {
-                echo "            // Formatear fecha\n";
-                echo "            \$params[] = !empty(\$datos['$fieldName']) ? date('Y-m-d', strtotime(\$datos['$fieldName'])) : null;\n";
+                echo "            // Formatear fecha o dejar nulo si está vacío\n";
+                echo "            \$params[] = (!empty(\$datos['$fieldName'])) ? date('Y-m-d', strtotime(\$datos['$fieldName'])) : null;\n";
                 echo "            \$tipos .= 's';\n";
             } else {
-                echo "            \$params[] = \$datos['$fieldName'];\n";
+                echo "            \$params[] = (\$datos['$fieldName'] === '' || \$datos['$fieldName'] === null) ? '' : \$datos['$fieldName'];\n";
                 echo "            \$tipos .= 's';\n";
             }
 ?>
-        <?php if (!in_array($fieldName, $camposRequeridos)): ?>  }<?php endif; ?>
         }
 <?php endif; ?>
 <?php endforeach; ?>
@@ -223,43 +226,32 @@ class Modelo<?php echo $nombreClase; ?> {
     if ($campo['Field'] != $llavePrimaria && !in_array($campo['Field'], $camposAutoIncrement) && !in_array($campo['Field'], $camposCURRENT)): 
         $fieldName = $campo['Field'];
         $fieldType = $campo['Type'];
+        $isAuditInsert = (isset($config['fields'][$fieldName]['audit']) && $config['fields'][$fieldName]['audit'] === 'insert');
+        $isRequerido = in_array($fieldName, $camposRequeridos);
 ?>
-<?php if (in_array($fieldName, $camposRequeridos)): ?>
-<?php 
-    // Si el campo es de auditoría TIPO INSERT, no se debe validar como REQUERIDO en el ACTUALIZAR
-    $isAuditInsert = (isset($config['fields'][$fieldName]['audit']) && $config['fields'][$fieldName]['audit'] === 'insert');
-?>
-<?php if ($isAuditInsert): ?>
-        // Campo de auditoria (Usuario Inserta) - No se requiere en actualización
-        if (isset($datos['<?php echo $fieldName; ?>']) && $datos['<?php echo $fieldName; ?>'] !== '') {
-            $actualizaciones[] = "`<?php echo $fieldName; ?>` = ?";
-<?php else: ?>
-        // Campo Requerido: Validar solo si está presente
-        if (isset($datos['<?php echo $fieldName; ?>'])) {
-            if ($datos['<?php echo $fieldName; ?>'] === '') {
-                throw new Exception('El campo <?php echo $fieldName; ?> es requerido.');
-            }
-            $actualizaciones[] = "`<?php echo $fieldName; ?>` = ?";
+        // Campo: <?php echo $fieldName; ?>
+
+<?php if ($isRequerido && !$isAuditInsert): ?>
+        if (array_key_exists('<?php echo $fieldName; ?>', $datos) && $datos['<?php echo $fieldName; ?>'] === '') {
+            throw new Exception('El campo <?php echo $fieldName; ?> es requerido.');
+        }
 <?php endif; ?>
-<?php else: ?>
-        // Campo No Requerido
-        if (isset($datos['<?php echo $fieldName; ?>']) && ($datos['<?php echo $fieldName; ?>'] !== '' || $datos['<?php echo $fieldName; ?>'] === 0)) {
+        if (array_key_exists('<?php echo $fieldName; ?>', $datos)) {
             $actualizaciones[] = "`<?php echo $fieldName; ?>` = ?";
-<?php endif; ?>
 <?php
-            // Lógica de tipos común
-            if (strpos($fieldType, 'int') !== false) {
-                echo "            \$params[] = \$datos['$fieldName'];\n";
+            // Lógica de tipos
+            if (strpos($fieldType, 'int') !== false || strpos($fieldType, 'year') !== false) {
+                echo "            \$params[] = (\$datos['$fieldName'] === '' || \$datos['$fieldName'] === null) ? null : (int)\$datos['$fieldName'];\n";
                 echo "            \$tipos .= 'i';\n";
             } elseif (strpos($fieldType, 'float') !== false || strpos($fieldType, 'double') !== false || strpos($fieldType, 'decimal') !== false) {
-                echo "            \$params[] = \$datos['$fieldName'];\n";
+                echo "            \$params[] = (\$datos['$fieldName'] === '' || \$datos['$fieldName'] === null) ? null : (float)\$datos['$fieldName'];\n";
                 echo "            \$tipos .= 'd';\n";
             } elseif (strpos($fieldType, 'date') !== false || strpos($fieldType, 'datetime') !== false) {
-                echo "            // Formatear fecha\n";
-                echo "            \$params[] = !empty(\$datos['$fieldName']) ? date('Y-m-d', strtotime(\$datos['$fieldName'])) : null;\n";
+                echo "            // Formatear fecha o dejar nulo si está vacío\n";
+                echo "            \$params[] = (!empty(\$datos['$fieldName'])) ? date('Y-m-d', strtotime(\$datos['$fieldName'])) : null;\n";
                 echo "            \$tipos .= 's';\n";
             } else {
-                echo "            \$params[] = \$datos['$fieldName'];\n";
+                echo "            \$params[] = (\$datos['$fieldName'] === '' || \$datos['$fieldName'] === null) ? '' : \$datos['$fieldName'];\n";
                 echo "            \$tipos .= 's';\n";
             }
 ?>
@@ -288,22 +280,28 @@ class Modelo<?php echo $nombreClase; ?> {
 <?php endif; ?>
 
     // Función de búsqueda (reutilizada)
-    public function buscar($termino, $registrosPorPagina, $offset, $orderBy = '<?php echo $llavePrimaria; ?>', $orderDir = 'DESC') {
+    public function buscar($termino, $registrosPorPagina, $offset, $orderBy = null, $orderDir = 'DESC') {
         // Validar columnas permitidas
-        $allowedColumns = [<?php 
-            echo implode(', ', $allCols); // Reutilizar array de arriba
-        ?>];
+        $allowedColumns = [<?php echo implode(', ', $allCols); ?>];
         
-        $orderByClean = str_replace(['`', ' '], '', $orderBy);
-        $isValid = false;
-        foreach($allowedColumns as $ac) {
-            if (str_replace(['`', ' '], '', $ac) === $orderByClean) {
-                $isValid = true;
-                break;
+        $orderSQL = "";
+        $esValidoOrden = false;
+        if (!empty($orderBy)) {
+            $orderByClean = str_replace(['`', ' '], '', $orderBy);
+            foreach($allowedColumns as $ac) {
+                if (str_replace(['`', ' '], '', $ac) === $orderByClean) {
+                    $esValidoOrden = true;
+                    break;
+                }
+            }
+            if ($esValidoOrden) {
+                $orderSQL = " ORDER BY $orderBy $orderDir ";
             }
         }
-        
-        $orderSQL = $isValid ? " ORDER BY $orderBy $orderDir " : " ORDER BY `<?php echo $tabla; ?>`.`<?php echo $llavePrimaria; ?>` DESC ";
+
+        if (empty($orderSQL)) {
+            $orderSQL = " ORDER BY <?php echo implode(', ', $defaultSortItems); ?> ";
+        }
 
         $query = "SELECT `<?php echo $tabla; ?>`.* <?php 
             foreach($relaciones as $campo => $config) {
@@ -379,11 +377,9 @@ class Modelo<?php echo $nombreClase; ?> {
         return $resultado ? $resultado->fetch_assoc()['total'] : 0;
     }
 
-    public function buscarPorCampo($campo, $valor, $registrosPorPagina, $offset, $orderBy = '<?php echo $llavePrimaria; ?>', $orderDir = 'DESC') {
+    public function buscarPorCampo($campo, $valor, $registrosPorPagina, $offset, $orderBy = null, $orderDir = 'DESC') {
         // Validación de campo idéntica a contarPorCampo
-         $allowedColumns = [<?php 
-            echo implode(', ', $allCols); 
-        ?>];
+        $allowedColumns = [<?php echo implode(', ', $allCols); ?>];
         $simpleCols = [<?php 
              echo implode(', ', array_map(function($c) { return "'{$c['Field']}'"; }, $campos));
         ?>];
@@ -411,15 +407,24 @@ class Modelo<?php echo $nombreClase; ?> {
         if (!$esValido) return [];
 
         // Validación OrderBy
-        $orderByClean = str_replace(['`', ' '], '', $orderBy);
-        $orderValid = false;
-        foreach($allowedColumns as $ac) {
-            if (str_replace(['`', ' '], '', $ac) === $orderByClean) {
-                $orderValid = true;
-                break;
+        $orderSQL = "";
+        $esValidoOrden = false;
+        if (!empty($orderBy)) {
+            $orderByClean = str_replace(['`', ' '], '', $orderBy);
+            foreach($allowedColumns as $ac) {
+                if (str_replace(['`', ' '], '', $ac) === $orderByClean) {
+                    $esValidoOrden = true;
+                    break;
+                }
+            }
+            if ($esValidoOrden) {
+                $orderSQL = " ORDER BY $orderBy $orderDir ";
             }
         }
-        $orderSQL = $orderValid ? " ORDER BY $orderBy $orderDir " : " ORDER BY `<?php echo $tabla; ?>`.`<?php echo $llavePrimaria; ?>` DESC ";
+        
+        if (empty($orderSQL)) {
+             $orderSQL = " ORDER BY <?php echo implode(', ', $defaultSortItems); ?> ";
+        }
 
         $query = "SELECT `<?php echo $tabla; ?>`.* <?php 
             foreach($relaciones as $campo => $config) {

@@ -11,6 +11,17 @@
  */
 require_once '../verificar_sesion.php';
 require_once '../../config/config.php'; // Incluir archivo de configuración
+
+// Cargar environment si existe
+if (file_exists(__DIR__ . '/../../.env')) {
+    $env = parse_ini_file(__DIR__ . '/../../.env');
+    if ($env) {
+        foreach ($env as $key => $value) {
+            putenv("$key=$value");
+            $_ENV[$key] = $value;
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -44,9 +55,14 @@ require_once '../../config/config.php'; // Incluir archivo de configuración
                 <div class="col-md-10">
                     <div class="user-info d-flex justify-content-between align-items-center">
                         <h2 class="welcome-text m-0">Bienvenido, <?php echo htmlspecialchars($usuario_nombre); ?></h2> 
-                        <a href="../controladores/controlador_login.php?action=logout" class="btn btn-danger logout-btn">
-                            <i class="icon-logout"></i> Cerrar Sesión
-                        </a>
+                        <div class="d-flex gap-2">
+                            <a href="vista_cambiar_password.php?source=menu" class="btn btn-warning" target="iframeTrabajo">
+                                <i class="icon-lock"></i> Cambiar Contraseña
+                            </a>
+                            <a href="../controladores/controlador_login.php?action=logout" class="btn btn-danger logout-btn">
+                                <i class="icon-logout"></i> Cerrar Sesión
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>

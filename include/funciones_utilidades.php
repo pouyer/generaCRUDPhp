@@ -153,4 +153,85 @@ function crearArchivo($archivo, $contenido) {
     fclose($fp);
 }
 
-?>
+function sincronizar_programas_vistas($conexion, $ruta_vistas, $ruta_relativa = null) {
+    if (!is_dir($ruta_vistas)) return false;
+
+    // 1. Validar/Crear Módulo 101 si no existe
+    $id_modulo_default = 101;
+    $conexion->query("INSERT IGNORE INTO acc_modulo (id_modulo, nombre_modulo, icono, orden, estado) 
+                      VALUES ($id_modulo_default, 'Nuevos CRUDs', 'icon-plus-circled', 999, 'activo')");
+
+    // 2. Escanear archivos PHP en vistas
+    $archivos = glob($ruta_vistas . "/vista_*.php");
+    foreach ($archivos as $ruta_archivo) {
+        $nombre_archivo = basename($ruta_archivo);
+        
+        // Verificar si existe el programa
+        $res_check = $conexion->query("SELECT id_programas FROM acc_programa WHERE nombre_archivo = '$nombre_archivo'");
+        
+        if ($res_check && $res_check->num_rows == 0) {
+            // INSERT: Nuevo programa detectado
+            $nombre_menu = str_replace(['vista_', '.php'], '', $nombre_archivo);
+            $nombre_menu = ucwords(str_replace('_', ' ', $nombre_menu));
+            
+            $ruta_val = $ruta_relativa ? "'$ruta_relativa'" : "NULL";
+            $sql_ins = "INSERT INTO acc_programa (nombre_menu, nombre_archivo, id_modulo, estado, icono, ruta) 
+                        VALUES ('$nombre_menu', '$nombre_archivo', $id_modulo_default, 'activo', 'icon-dot-circled', $ruta_val)";
+            
+            if ($conexion->query($sql_ins)) {
+                $id_prog = $conexion->insert_id;
+                $conexion->query("INSERT IGNORE INTO acc_programa_x_rol (id_programas, id_rol, permiso_insertar, permiso_actualizar, permiso_eliminar, permiso_exportar) 
+                                 VALUES ($id_prog, 1, 1, 1, 1, 1)");
+            }
+        } else {
+            // UPDATE: Programa existente, actualizamos su ruta si se proporcionó una nueva
+            if ($ruta_relativa) {
+                $sql_upd = "UPDATE acc_programa SET ruta = '$ruta_relativa' WHERE nombre_archivo = '$nombre_archivo'";
+                $conexion->query($sql_upd);
+            }
+        }
+    }
+    
+    // 3. Asegurar que el modulo 101 esté activo
+    $conexion->query("UPDATE acc_modulo SET estado = 'activo' WHERE id_modulo = 101");
+    
+    return true;
+}
+
+/**
+ * Actualiza las rutas de los programas BASE de forma inteligente.
+ * SOLO afecta a los programas administrativos internos (Módulos 1-4).
+ */
+function actualizaRutaProgramas($proyecto, $conexion) {
+    $response = [];
+    
+    // Ruta para programas ADMINISTRATIVOS base (Módulos de Accesos: Roles, Usuarios, etc.)
+    // Estos se encuentran SIEMPRE en la carpeta 'accesos/vistas'
+    $rutaAcceso = '/' . $proyecto . '/accesos/vistas';
+    
+    // Solo actualizamos los módulos 1, 2, 3, 4 (Core del sistema)
+    $queryAcceso = "UPDATE `acc_programa` SET `ruta` = ? WHERE id_modulo IN (1, 2, 3, 4)";
+    $stmtAcceso = $conexion->prepare($queryAcceso);
+    if ($stmtAcceso) {
+        $stmtAcceso->bind_param('s', $rutaAcceso);
+        $stmtAcceso->execute();
+        $stmtAcceso->close();
+    }
+
+    $response['success'] = "Rutas de programas base sincronizadas.";
+    return $response;
+}
+
+function verificar_tabla_configuracion($conexion) {
+    if (!$conexion) return false;
+    $sql = "CREATE TABLE IF NOT EXISTS acc_configuracion_objeto (
+        id_config INT AUTO_INCREMENT PRIMARY KEY,
+        nombre_proyecto VARCHAR(150) NULL,
+        nombre_objeto VARCHAR(150) NOT NULL,
+        tipo_objeto VARCHAR(20) DEFAULT 'TABLE',
+        configuracion_json LONGTEXT NOT NULL,
+        fecha_actualizacion DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY u_proyecto_objeto (nombre_proyecto, nombre_objeto)
+    )";
+    return $conexion->query($sql);
+}

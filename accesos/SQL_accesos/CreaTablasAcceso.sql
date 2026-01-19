@@ -26,8 +26,12 @@ CREATE TABLE `acc_estado` (
   `nombre_estado` varchar(254) DEFAULT NULL,
   `visible` tinyint(4) DEFAULT NULL,
   `orden` int(11) DEFAULT NULL,
-  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp(),
-  `fecha_actualiza` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  -- Datos del sistema
+  `usuario_id_inserto` INT ,
+  `fecha_insercion` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `usuario_id_actualizo` INT,
+  `fecha_actualizacion` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+
   PRIMARY KEY (`id_estado`),
   UNIQUE KEY `indx_tabla` (`tabla`,`estado`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
@@ -37,18 +41,24 @@ CREATE TABLE `acc_modulo` (
   `nombre_modulo` varchar(125) DEFAULT NULL,
   `icono` varchar(125) DEFAULT NULL,
   `orden` int(11) DEFAULT NULL,
-  `estado` varchar(2) DEFAULT NULL,
-  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp(),
-  `fecha_actualiza` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  `estado` enum('activo','inactivo') DEFAULT 'activo',
+    -- Datos del sistema
+  `usuario_id_inserto` INT ,
+  `fecha_insercion` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `usuario_id_actualizo` INT,
+  `fecha_actualizacion` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_modulo`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `acc_rol` (
   `id_rol` int(11) NOT NULL AUTO_INCREMENT,
   `nombre_rol` varchar(125) DEFAULT NULL,
-  `estado` varchar(2) DEFAULT NULL,
-  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp(),
-  `fecha_actualiza` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  `estado` enum('activo','inactivo') DEFAULT 'activo',
+    -- Datos del sistema
+  `usuario_id_inserto` INT ,
+  `fecha_insercion` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `usuario_id_actualizo` INT,
+  `fecha_actualizacion` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_rol`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
@@ -58,24 +68,30 @@ CREATE TABLE `acc_usuario` (
   `fullname` varchar(250) NOT NULL,
   `correo` varchar(255) DEFAULT NULL,
   `password` varchar(255) DEFAULT NULL,
-  `estado` varchar(2) NOT NULL DEFAULT 'A',
-  `cambio_clave_obligatorio` char(1) NOT NULL DEFAULT 'N',
-  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp(),
-  `fecha_actualiza` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  `estado` enum('activo','inactivo') DEFAULT 'activo',
+  `cambio_clave_obligatorio` BOOLEAN NOT NULL DEFAULT FALSE,
+   -- Datos del sistema
+  `usuario_id_inserto` INT ,
+  `fecha_insercion` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `usuario_id_actualizo` INT,
+  `fecha_actualizacion` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_usuario`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `acc_programa` (
   `id_programas` int(11) NOT NULL AUTO_INCREMENT,
+  `id_modulo` int(11) DEFAULT NULL,
   `nombre_menu` varchar(128) DEFAULT NULL,
   `icono` varchar(125) DEFAULT NULL,
   `ruta` varchar(250) DEFAULT NULL,
   `nombre_archivo` varchar(150) DEFAULT NULL,
   `orden` int(11) DEFAULT NULL,
-  `estado` varchar(2) DEFAULT 'A',
-  `id_modulo` int(11) DEFAULT NULL,
-  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp(),
-  `fecha_actualiza` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  `estado` enum('activo','inactivo') DEFAULT 'activo',
+  -- Datos del sistema
+  `usuario_id_inserto` INT ,
+  `fecha_insercion` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `usuario_id_actualizo` INT,
+  `fecha_actualizacion` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_programas`),
   KEY `programas_id_modulo_fk` (`id_modulo`),
   CONSTRAINT `programas_id_modulo_fk` FOREIGN KEY (`id_modulo`) REFERENCES `acc_modulo` (`id_modulo`)
@@ -84,7 +100,11 @@ CREATE TABLE `acc_programa` (
 CREATE TABLE `acc_rol_x_usuario` (
   `id_usuario` int(11) NOT NULL,
   `id_rol` int(11) NOT NULL,
-  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp(),
+    -- Datos del sistema
+  `usuario_id_inserto` INT ,
+  `fecha_insercion` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `usuario_id_actualizo` INT,
+  `fecha_actualizacion` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_usuario`,`id_rol`),
   KEY `rol_x_usuario_id_rol_fk` (`id_rol`),
   CONSTRAINT `rol_x_usuario_id_rol_fk` FOREIGN KEY (`id_rol`) REFERENCES `acc_rol` (`id_rol`),
@@ -98,7 +118,11 @@ CREATE TABLE `acc_programa_x_rol` (
   `permiso_actualizar` tinyint(4) DEFAULT 0,
   `permiso_eliminar` tinyint(4) DEFAULT 0,
   `permiso_exportar` tinyint(4) DEFAULT 0,
-  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp(),
+    -- Datos del sistema
+  `usuario_id_inserto` INT ,
+  `fecha_insercion` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `usuario_id_actualizo` INT,
+  `fecha_actualizacion` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_programas`,`id_rol`),
   KEY `programa_x_rol_id_rol_fk` (`id_rol`),
   CONSTRAINT `programa_x_rol_id_programas_fk` FOREIGN KEY (`id_programas`) REFERENCES `acc_programa` (`id_programas`),
@@ -118,30 +142,29 @@ CREATE TABLE `acc_log_accion` (
   CONSTRAINT `log_id_usuario_fk` FOREIGN KEY (`id_usuario`) REFERENCES `acc_usuario` (`id_usuario`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `acc_modulo` (`nombre_modulo`, `icono`, `orden`, `estado`) 
-VALUES ('Seguridad y Accesos', 'icon-lock-filled', 100, 'A');
+INSERT INTO `acc_modulo` (`nombre_modulo`, `icono`, `orden`) 
+VALUES ('Seguridad y Accesos', 'icon-lock-filled', 100);
 
-INSERT INTO `acc_rol` (`nombre_rol`, `estado`) 
-VALUES ('Super Administrador', 'A'), ('Administrador Accesos', 'A');
+INSERT INTO `acc_rol` (`nombre_rol`) 
+VALUES ('Super Administrador'), ('Administrador Accesos');
 
-INSERT INTO `acc_usuario` (`username`, `fullname`, `correo`, `password`, `estado`) 
-VALUES ('admin', 'Super Administrador', 'admin@admin.com', 'admin', 'A');
+INSERT INTO `acc_usuario` (`username`, `fullname`, `correo`, `password`) 
+VALUES ('admin', 'Super Administrador', 'admin@admin.com', 'admin');
 
-INSERT INTO `acc_programa` ( `nombre_menu`, `ruta`, `nombre_archivo`, `orden`, `estado`, `id_modulo`, `icono`) 
-VALUES ('Modulos',NULL,'vista_acc_modulo.php',1,'A',1,'icon-cubes'),
-('Roles',NULL,'vista_acc_rol.php',2,'A',1,'icon-users'),
-('Usuarios',NULL,'vista_acc_usuario.php',3,'A',1,'icon-vcard'),
-('Programas',NULL,'vista_acc_programa.php',4,'A',1,'icon-desktop'),
-('Programas por Rol',NULL,'vista_roles_programas.php',5,'A',1,'icon-th-list-outline'),
-('Estados',NULL,'vista_acc_estado.php',6,'A',1,'icon-check-outline'),
-('Log de Acciones',NULL,'vista_acc_log.php',7,'A',1,'icon-history');
+INSERT INTO `acc_programa` ( `nombre_menu`, `ruta`, `nombre_archivo`, `orden`, `id_modulo`, `icono`, `estado`) 
+VALUES ('Modulos',NULL,'vista_acc_modulo.php',1,1,'icon-cubes', 'activo'),
+('Roles',NULL,'vista_acc_rol.php',2,1,'icon-users', 'activo'),
+('Usuarios',NULL,'vista_acc_usuario.php',3,1,'icon-vcard', 'activo'),
+('Programas',NULL,'vista_acc_programa.php',4,1,'icon-desktop', 'activo'),
+('Programas por Rol',NULL,'vista_roles_programas.php',5,1,'icon-th-list-outline', 'activo'),
+('Estados',NULL,'vista_acc_estado.php',6,1,'icon-check-outline', 'activo'),
+('Log de Acciones',NULL,'vista_acc_log.php',7,1,'icon-history', 'activo');
 
-INSERT INTO `acc_estado` ( tabla, estado, nombre_estado, visible, orden)
-VALUES ('acc_modulo','A','Activo',1,1),('acc_modulo','I','Inactivo',1,2),
-('acc_programa','A','Activo',1,1),('acc_programa','I','Inactivo',1,2),
-('acc_usuario','A','Activo',1,1),('acc_usuario','I','Inactivo',1,2),
-('acc_rol','A','Activo',1,1),('acc_rol','I','Inactivo',1,2);
-
+-- INSERT INTO `acc_estado` ( tabla, estado, nombre_estado, visible, orden)
+-- VALUES ('acc_modulo','A','Activo',1,1),('acc_modulo','I','Inactivo',1,2),
+-- ('acc_programa','A','Activo',1,1),('acc_programa','I','Inactivo',1,2),
+-- ('acc_usuario','A','Activo',1,1),('acc_usuario','I','Inactivo',1,2),
+-- ('acc_rol','A','Activo',1,1),('acc_rol','I','Inactivo',1,2);
 
 INSERT INTO `acc_rol_x_usuario` (`id_usuario`, `id_rol`) 
 SELECT 1, id_rol FROM acc_rol WHERE nombre_rol IN ('Super Administrador', 'Administrador Accesos');
@@ -153,27 +176,38 @@ ORDER BY `r`.`id_rol`, `id_programas`;
 
 
 CREATE VIEW `v_acc_menu` AS
-       SELECT DISTINCT
-        `p`.`nombre_menu` AS `nombre_menu`,
-        `p`.`ruta` AS `ruta_programa`,
-        `p`.`nombre_archivo` AS `nombre_programaPHP`,
-        `u`.`username` AS `username`,
-        `u`.`id_usuario` AS `id_usuario`,
-        `m`.`nombre_modulo` AS `modulo`,
-        `m`.`icono` AS `icono_modulo`,
-        `p`.`icono` AS `icono_programa`
-    FROM
-        (((((`acc_usuario` `u`
-        JOIN `acc_rol_x_usuario` `ru` ON (`ru`.`id_usuario` = `u`.`id_usuario`))
-        JOIN `acc_programa_x_rol` `pr` ON (`pr`.`id_rol` = `ru`.`id_rol`))
-        JOIN `acc_rol` `r` ON (`r`.`id_rol` = `pr`.`id_rol`))
-        JOIN `acc_programa` `p` ON (`p`.`id_programas` = `pr`.`id_programas`))
-        LEFT JOIN `acc_modulo` `m` ON (`m`.`id_modulo` = `p`.`id_modulo`))
-    WHERE
-        `u`.`estado` = 'A'
-            AND `p`.`estado` = 'A'
-            AND `r`.`estado` = 'A'
-    ORDER BY `m`.`orden` , `p`.`orden`, `u`.`username` ;
+  select
+    distinct `p`.`nombre_menu` AS `nombre_menu`,
+    `p`.`ruta` AS `ruta_programa`,
+    `p`.`nombre_archivo` AS `nombre_programaPHP`,
+    `u`.`username` AS `username`,
+    `u`.`id_usuario` AS `id_usuario`,
+    `m`.`nombre_modulo` AS `modulo`,
+    `m`.`icono` AS `icono_modulo`,
+    `p`.`icono` AS `icono_programa`,
+    `m`.`orden` AS `modulo_orden`,
+    `p`.`orden` AS `programa_orden`
+from
+    (((((`acc_usuario` `u`
+join `acc_rol_x_usuario` `ru` on
+    (`ru`.`id_usuario` = `u`.`id_usuario`))
+join `acc_programa_x_rol` `pr` on
+    (`pr`.`id_rol` = `ru`.`id_rol`))
+join `acc_rol` `r` on
+    (`r`.`id_rol` = `pr`.`id_rol`))
+join `acc_programa` `p` on
+    (`p`.`id_programas` = `pr`.`id_programas`))
+join `acc_modulo` `m` on
+    (`m`.`id_modulo` = `p`.`id_modulo`))
+where
+    `u`.`estado` = 'activo'
+    and `p`.`estado` = 'activo'
+    and `r`.`estado` = 'activo'
+    and `m`.`estado` = 'activo'
+order by
+    `m`.`orden`, `m`.`nombre_modulo`,
+    `p`.`orden`, `p`.`nombre_menu`,
+    `u`.`username`; ;
 
 CREATE VIEW `v_acc_programa` AS
     select 
@@ -185,13 +219,11 @@ CREATE VIEW `v_acc_programa` AS
         `p`.`id_modulo` AS `id_modulo`,
         `p`.`orden` AS `orden`,
         `p`.`estado` AS `estado`,
-        IFNULL(s.nombre_estado,p.estado) AS nombre_estado,
         `m`.`nombre_modulo` AS `nombre_modulo`,
-        `p`.`fecha_creacion` AS `fecha_creacion`
+        `p`.`fecha_insercion` AS `fecha_creacion`
      from (`acc_programa` `p` 
-		left join  acc_estado s on (s.tabla = 'acc_programa' and s.estado = p.estado)
         left join `acc_modulo` `m` on(`m`.`id_modulo` = `p`.`id_modulo`)) 
-     order by `nombre_menu`   ; 
+     order by `m`.`orden`, `m`.`nombre_modulo`,`p`.`orden`, `p`.`nombre_menu`   ; 
 
 CREATE VIEW `v_acc_modulo` AS
     select 
@@ -200,21 +232,17 @@ CREATE VIEW `v_acc_modulo` AS
         `m`.`icono` AS `icono`,
         `m`.`orden` AS `orden`,
         `m`.`estado` AS `estado`,
-        IFNULL(s.nombre_estado,m.estado) AS nombre_estado,
-        `m`.`fecha_creacion` AS `fecha_creacion` 
+        `m`.`fecha_insercion` AS `fecha_creacion` 
     from `acc_modulo` `m` 
-	  left join  acc_estado s on (s.tabla = 'acc_modulo' and s.estado = m.estado)
-    order by `nombre_modulo` ;
+    order by `m`.`orden`, `m`.`nombre_modulo` ;
 
 CREATE VIEW `v_acc_rol` AS
     select 
         `r`.`id_rol` AS `id_rol`,
         `r`.`nombre_rol` AS `nombre_rol`,
         `r`.`estado` AS `estado`,
-        IFNULL(s.nombre_estado,`r`.`estado`) AS nombre_estado,
-        `r`.`fecha_creacion` AS `fecha_creacion`
+        `r`.`fecha_insercion` AS `fecha_creacion`
      from `acc_rol` `r`
-	 left join  acc_estado s on (s.tabla = 'acc_rol' and s.estado = r.estado)
      order by `nombre_rol` ;
 
 CREATE VIEW `v_acc_usuario` AS
@@ -225,19 +253,18 @@ CREATE VIEW `v_acc_usuario` AS
         `u`.`correo` AS `correo`,
         `u`.`password` AS `password`,
         `u`.`estado` AS `estado`,
-        IFNULL(s.nombre_estado,u.estado) AS nombre_estado,
-        `u`.`fecha_creacion` AS `fecha_creacion` 
+        `u`.`fecha_insercion` AS `fecha_creacion` 
     from `acc_usuario` `u` 
-	left join  acc_estado s on (s.tabla = 'acc_rol' and s.estado = u.estado)
     order by `fullname` ;          
 
 CREATE VIEW `v_acc_rol_x_usuario` AS
     SELECT 
         `ru`.`id_usuario` AS `id_usuario`,
-        IFNULL(`u`.`fullname`, `u`.`username`) AS `nombre_usuario`,
+        `u`.`fullname` AS `fullname`,
+        `u`.`username` AS `username`,
         `ru`.`id_rol` AS `id_rol`,
         `r`.`nombre_rol` AS `nombre_rol`,
-        `ru`.`fecha_creacion` AS `fecha_creacion`
+        `ru`.`fecha_insercion` AS `fecha_creacion`
     FROM
         ((`acc_rol_x_usuario` `ru`
         JOIN `acc_usuario` `u` ON (`u`.`id_usuario` = `ru`.`id_usuario`))
@@ -254,7 +281,7 @@ CREATE VIEW `v_acc_programa_x_rol` AS
         `pr`.`permiso_actualizar` AS `permiso_actualizar`,
         `pr`.`permiso_eliminar` AS `permiso_eliminar`,
         `pr`.`permiso_exportar` AS `permiso_exportar`,
-        `pr`.`fecha_creacion` AS `fecha_creacion`
+        `pr`.`fecha_insercion` AS `fecha_creacion`
     FROM
         ((`acc_programa_x_rol` `pr`
         JOIN `acc_programa` `p` ON (`p`.`id_programas` = `pr`.`id_programas`))

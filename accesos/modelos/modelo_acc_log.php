@@ -32,6 +32,9 @@ class ModeloAcc_log {
     public function registrar($id_usuario, $accion, $tabla = null, $detalles = null) {
         if (!$this->conexion) return false;
         
+        // Validar que el id_usuario sea válido para evitar errores de clave foránea
+        if (empty($id_usuario) || $id_usuario <= 0) return false;
+        
         $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         $query = "INSERT INTO acc_log_accion (id_usuario, accion, tabla, detalles, ip) VALUES (?, ?, ?, ?, ?)";
         $stmt = $this->conexion->prepare($query);
@@ -51,10 +54,14 @@ class ModeloAcc_log {
         return $resultado ? $resultado->fetch_assoc()['total'] : 0;
     }
 
-    public function obtenerTodos($registrosPorPagina, $offset) {
+    public function obtenerTodos($registrosPorPagina, $offset, $orderBy = null, $orderDir = 'DESC') {
+        $columnasPermitidas = ['id_log', 'username', 'accion', 'tabla', 'ip', 'fecha'];
+        $orderBy = in_array($orderBy, $columnasPermitidas) ? $orderBy : 'l.fecha';
+        $orderDir = strtoupper($orderDir) === 'ASC' ? 'ASC' : 'DESC';
+
         $query = "SELECT l.*, u.username FROM acc_log_accion l 
                   LEFT JOIN acc_usuario u ON l.id_usuario = u.id_usuario 
-                  ORDER BY l.fecha DESC LIMIT ? OFFSET ?";
+                  ORDER BY $orderBy $orderDir LIMIT ? OFFSET ?";
         $stmt = $this->conexion->prepare($query);
         $stmt->bind_param('ii', $registrosPorPagina, $offset);
         $stmt->execute();
@@ -62,12 +69,16 @@ class ModeloAcc_log {
         return $resultado ? $resultado->fetch_all(MYSQLI_ASSOC) : false;
     }
 
-    public function buscar($termino, $registrosPorPagina, $offset) {
+    public function buscar($termino, $registrosPorPagina, $offset, $orderBy = null, $orderDir = 'DESC') {
+        $columnasPermitidas = ['id_log', 'username', 'accion', 'tabla', 'ip', 'fecha'];
+        $orderBy = in_array($orderBy, $columnasPermitidas) ? $orderBy : 'l.fecha';
+        $orderDir = strtoupper($orderDir) === 'ASC' ? 'ASC' : 'DESC';
+
         $termino = "%$termino%";
         $query = "SELECT l.*, u.username FROM acc_log_accion l 
                   LEFT JOIN acc_usuario u ON l.id_usuario = u.id_usuario 
                   WHERE l.accion LIKE ? OR l.tabla LIKE ? OR l.detalles LIKE ? OR u.username LIKE ?
-                  ORDER BY l.fecha DESC LIMIT ? OFFSET ?";
+                  ORDER BY $orderBy $orderDir LIMIT ? OFFSET ?";
         $stmt = $this->conexion->prepare($query);
         $stmt->bind_param('ssssii', $termino, $termino, $termino, $termino, $registrosPorPagina, $offset);
         $stmt->execute();

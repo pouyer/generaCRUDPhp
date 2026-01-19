@@ -190,16 +190,11 @@ $paginaActual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
                                 <input type="text" class="form-control p-3 bg-light border-0 shadow-none" name="nombre_estado" required placeholder="Ej: Activo, Inactivo...">
                             </div>
                             <div class="col-12">
-                                <label class="form-label small fw-bold text-muted">VISIBILIDAD</label>
-                                <div class="d-flex gap-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="visible" value="1" checked id="vis1">
-                                        <label class="form-check-label" for="vis1">Visible</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="visible" value="0" id="vis0">
-                                        <label class="form-check-label" for="vis0">Oculto</label>
-                                    </div>
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-3">Visibilidad</label>
+                                <div class="form-check form-switch p-0 d-flex align-items-center gap-3 bg-light p-3 rounded-4 border border-light-subtle">
+                                    <input class="form-check-input ms-0" type="checkbox" id="switch_visible_crear" checked style="width: 3em; height: 1.5em; cursor: pointer;">
+                                    <label class="form-check-label fw-bold text-success mb-0" for="switch_visible_crear" id="label_visible_crear">PÚBLICO / VISIBLE</label>
+                                    <input type="hidden" name="visible" id="visible_crear" value="1">
                                 </div>
                             </div>
                         </div>
@@ -242,11 +237,12 @@ $paginaActual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
                                 <input type="text" class="form-control p-3 bg-light border-0 shadow-none" name="nombre_estado" id="update_nombre" required>
                             </div>
                             <div class="col-12">
-                                <label class="form-label small fw-bold text-muted">VISIBILIDAD</label>
-                                <select class="form-select p-3 bg-light border-0 shadow-none" name="visible" id="update_visible">
-                                    <option value="1">Público / Visible</option>
-                                    <option value="0">Oculto / Interno</option>
-                                </select>
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-3">Visibilidad</label>
+                                <div class="form-check form-switch p-0 d-flex align-items-center gap-3 bg-light p-3 rounded-4 border border-light-subtle">
+                                    <input class="form-check-input ms-0" type="checkbox" id="switch_visible_actualizar" style="width: 3em; height: 1.5em; cursor: pointer;">
+                                    <label class="form-check-label fw-bold mb-0" for="switch_visible_actualizar" id="label_visible_actualizar">PÚBLICO / VISIBLE</label>
+                                    <input type="hidden" name="visible" id="visible_actualizar">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -272,8 +268,32 @@ $paginaActual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
                 modal.querySelector('#update_tabla').value = btn.getAttribute('data-tabla');
                 modal.querySelector('#update_estado').value = btn.getAttribute('data-estado');
                 modal.querySelector('#update_nombre').value = btn.getAttribute('data-nombre_estado');
-                modal.querySelector('#update_visible').value = btn.getAttribute('data-visible');
                 modal.querySelector('#update_orden').value = btn.getAttribute('data-orden');
+                
+                const visible = parseInt(btn.getAttribute('data-visible'));
+                const isVisible = visible === 1;
+                $('#switch_visible_actualizar').prop('checked', isVisible);
+                $('#visible_actualizar').val(visible);
+                $('#label_visible_actualizar').text(isVisible ? 'PÚBLICO / VISIBLE' : 'OCULTO / INTERNO')
+                    .toggleClass('text-success', isVisible)
+                    .toggleClass('text-danger', !isVisible);
+            });
+
+            // Handlers para los Switches
+            $('#switch_visible_crear').on('change', function() {
+                const isChecked = $(this).is(':checked');
+                $('#visible_crear').val(isChecked ? '1' : '0');
+                $('#label_visible_crear').text(isChecked ? 'PÚBLICO / VISIBLE' : 'OCULTO / INTERNO')
+                    .toggleClass('text-success', isChecked)
+                    .toggleClass('text-danger', !isChecked);
+            });
+
+            $('#switch_visible_actualizar').on('change', function() {
+                const isChecked = $(this).is(':checked');
+                $('#visible_actualizar').val(isChecked ? '1' : '0');
+                $('#label_visible_actualizar').text(isChecked ? 'PÚBLICO / VISIBLE' : 'OCULTO / INTERNO')
+                    .toggleClass('text-success', isChecked)
+                    .toggleClass('text-danger', !isChecked);
             });
 
             $('#formCrear').on('submit', function(e) { e.preventDefault(); $.post('../controladores/controlador_acc_estado.php?action=crear', $(this).serialize(), (r) => { if(r) location.reload(); }, 'json'); });

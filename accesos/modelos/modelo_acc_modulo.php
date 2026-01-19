@@ -27,8 +27,8 @@ class ModeloAcc_modulo {
         $camposBusqueda[] = "`nombre_modulo`";
         $camposBusqueda[] = "`icono`";
         $camposBusqueda[] = "`orden`";
-        $camposBusqueda[] = "`nombre_estado`";
-        $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ?";
+        $camposBusqueda[] = "`estado`";
+        $camposBusqueda[] = "`fecha_creacion`";
         $stmt = $this->conexion->prepare($query);
         $termino = "%" . $termino . "%";
         $stmt->bind_param('s', $termino);
@@ -36,9 +36,12 @@ class ModeloAcc_modulo {
         $resultado = $stmt->get_result();
         return $resultado ? $resultado->fetch_assoc()['total'] : false;
     }
-    public function obtenerTodos($registrosPorPagina, $offset) {
-        $query = "SELECT * FROM v_acc_modulo";
-        $query .= " LIMIT ? OFFSET ?";
+    public function obtenerTodos($registrosPorPagina, $offset, $orderBy = null, $orderDir = 'ASC') {
+        $columnasPermitidas = ['id_modulo', 'nombre_modulo', 'icono', 'orden', 'estado', 'fecha_creacion'];
+        $orderBy = in_array($orderBy, $columnasPermitidas) ? $orderBy : 'orden, nombre_modulo';
+        $orderDir = strtoupper($orderDir) === 'DESC' ? 'DESC' : 'ASC';
+
+        $query = "SELECT * FROM v_acc_modulo ORDER BY $orderBy $orderDir LIMIT ? OFFSET ?";
         $stmt = $this->conexion->prepare($query);
         $stmt->bind_param('ii', $registrosPorPagina, $offset);
         $stmt->execute();
@@ -61,45 +64,38 @@ class ModeloAcc_modulo {
         $tipos = '';
         $params = [];
 
-        if (!empty($datos['nombre_modulo'])) {
-          if (isset($datos['nombre_modulo'])) {
+        if (array_key_exists('nombre_modulo', $datos)) {
             $campos[] = '`nombre_modulo`';
             $valores[] = '?';
             $params[] = $datos['nombre_modulo'];
             $tipos .= 's';
-           }
         }
-        if (!empty($datos['icono'])) {
-          if (isset($datos['icono'])) {
+        if (array_key_exists('icono', $datos)) {
             $campos[] = '`icono`';
             $valores[] = '?';
             $params[] = $datos['icono'];
             $tipos .= 's';
-           }
         }
-        if (!empty($datos['orden'])) {
-          if (isset($datos['orden'])) {
+        if (array_key_exists('orden', $datos)) {
             $campos[] = '`orden`';
             $valores[] = '?';
-            $params[] = $datos['orden'];
+            $params[] = ($datos['orden'] === '' || $datos['orden'] === null) ? null : (int)$datos['orden'];
             $tipos .= 'i';
-           }
         }
-        if (!empty($datos['estado'])) {
-          if (isset($datos['estado'])) {
+        if (array_key_exists('estado', $datos)) {
             $campos[] = '`estado`';
             $valores[] = '?';
             $params[] = $datos['estado'];
             $tipos .= 's';
-           }
         }
-        if (!empty($datos['fecha_actualiza'])) {
-          if (isset($datos['fecha_actualiza'])) {
-            $campos[] = '`fecha_actualiza`';
+
+        // Datos de auditoría
+        $usuario_id = $_SESSION['usuario_id'] ?? null;
+        if ($usuario_id) {
+            $campos[] = '`usuario_id_inserto`';
             $valores[] = '?';
-            $params[] = $datos['fecha_actualiza'];
-            $tipos .= 's';
-           }
+            $params[] = $usuario_id;
+            $tipos .= 'i';
         }
 
         $query = "INSERT INTO acc_modulo (" . implode(', ', $campos) . ") VALUES (" . implode(', ', $valores) . ")";
@@ -117,40 +113,33 @@ class ModeloAcc_modulo {
         $tipos_pk = 'i'; // Para la llave primaria
         $params = [];
 
-        if (!empty($datos['nombre_modulo'])) {
-            if (isset($datos['nombre_modulo'])) {
+        if (array_key_exists('nombre_modulo', $datos)) {
             $actualizaciones[] = "`nombre_modulo` = ?";
             $params[] = $datos['nombre_modulo'];
             $tipos .= 's';
         }
-        }
-        if (!empty($datos['icono'])) {
-            if (isset($datos['icono'])) {
+        if (array_key_exists('icono', $datos)) {
             $actualizaciones[] = "`icono` = ?";
             $params[] = $datos['icono'];
             $tipos .= 's';
         }
-        }
-        if (!empty($datos['orden'])) {
-            if (isset($datos['orden'])) {
+        if (array_key_exists('orden', $datos)) {
             $actualizaciones[] = "`orden` = ?";
-            $params[] = $datos['orden'];
+            $params[] = ($datos['orden'] === '' || $datos['orden'] === null) ? null : (int)$datos['orden'];
             $tipos .= 'i';
         }
-        }
-        if (!empty($datos['estado'])) {
-            if (isset($datos['estado'])) {
+        if (array_key_exists('estado', $datos)) {
             $actualizaciones[] = "`estado` = ?";
             $params[] = $datos['estado'];
             $tipos .= 's';
         }
-        }
-        if (!empty($datos['fecha_actualiza'])) {
-            if (isset($datos['fecha_actualiza'])) {
-            $actualizaciones[] = "`fecha_actualiza` = ?";
-            $params[] = $datos['fecha_actualiza'];
-            $tipos .= 's';
-        }
+
+        // Datos de auditoría
+        $usuario_id = $_SESSION['usuario_id'] ?? null;
+        if ($usuario_id) {
+            $actualizaciones[] = "`usuario_id_actualizo` = ?";
+            $params[] = $usuario_id;
+            $tipos .= 'i';
         }
 
         $params[] = $id;
@@ -169,7 +158,11 @@ class ModeloAcc_modulo {
         $stmt->bind_param('i', $id);
         return $stmt->execute();
     }
-    public function buscar($termino, $registrosPorPagina, $offset) {
+    public function buscar($termino, $registrosPorPagina, $offset, $orderBy = null, $orderDir = 'ASC') {
+        $columnasPermitidas = ['id_modulo', 'nombre_modulo', 'icono', 'orden', 'estado', 'fecha_creacion'];
+        $orderBy = in_array($orderBy, $columnasPermitidas) ? $orderBy : 'orden, nombre_modulo';
+        $orderDir = strtoupper($orderDir) === 'DESC' ? 'DESC' : 'ASC';
+
         $query = "SELECT * FROM v_acc_modulo WHERE ";
         $camposBusqueda = [];
         $camposBusqueda[] = "`id_modulo`";
@@ -177,7 +170,8 @@ class ModeloAcc_modulo {
         $camposBusqueda[] = "`icono`";
         $camposBusqueda[] = "`orden`";
         $camposBusqueda[] = "`estado`";
-        $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ? LIMIT ? OFFSET ?";
+        $camposBusqueda[] = "`fecha_creacion`";
+        $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ? ORDER BY $orderBy $orderDir LIMIT ? OFFSET ?";
         $stmt = $this->conexion->prepare($query);
         $termino = "%" . $termino . "%";
         $stmt->bind_param('sii', $termino, $registrosPorPagina, $offset);
@@ -193,7 +187,7 @@ class ModeloAcc_modulo {
             $camposBusqueda[] = "`nombre_modulo`";
             $camposBusqueda[] = "`icono`";
             $camposBusqueda[] = "`orden`";
-            $camposBusqueda[] = "`nombre_estado`";
+            $camposBusqueda[] = "`estado`";
             $camposBusqueda[] = "`fecha_creacion`";
             $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ?";
             if (!$this->conexion) {

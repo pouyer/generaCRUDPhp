@@ -1,6 +1,9 @@
 <?php
     $registrosPorPagina = isset($_GET['registrosPorPagina']) ? (int)$_GET['registrosPorPagina'] : 100;
     $paginaActual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
+    $sort = $_GET['sort'] ?? 'fecha';
+    $dir = $_GET['dir'] ?? 'DESC';
+    $nextDir = ($dir === 'ASC') ? 'DESC' : 'ASC';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -57,13 +60,37 @@
                     <table class="table table-hover table-bordered table-sm align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th style="width: 80px;">ID</th>
-                                <th style="width: 150px;">Usuario</th>
-                                <th style="width: 120px;">Acción</th>
-                                <th style="width: 150px;">Tabla</th>
+                                <th style="width: 100px;">
+                                    <a href="?<?php echo http_build_query(array_merge($_GET, ['sort' => 'id_log', 'dir' => $nextDir])); ?>" class="text-decoration-none text-dark">
+                                        ID <?php if ($sort === 'id_log'): ?><i class="icon-<?php echo ($dir === 'ASC') ? 'up-dir' : 'down-dir'; ?> ms-1"></i><?php endif; ?>
+                                    </a>
+                                </th>
+                                <th style="width: 150px;">
+                                    <a href="?<?php echo http_build_query(array_merge($_GET, ['sort' => 'username', 'dir' => $nextDir])); ?>" class="text-decoration-none text-dark">
+                                        Usuario <?php if ($sort === 'username'): ?><i class="icon-<?php echo ($dir === 'ASC') ? 'up-dir' : 'down-dir'; ?> ms-1"></i><?php endif; ?>
+                                    </a>
+                                </th>
+                                <th style="width: 120px;">
+                                    <a href="?<?php echo http_build_query(array_merge($_GET, ['sort' => 'accion', 'dir' => $nextDir])); ?>" class="text-decoration-none text-dark">
+                                        Acción <?php if ($sort === 'accion'): ?><i class="icon-<?php echo ($dir === 'ASC') ? 'up-dir' : 'down-dir'; ?> ms-1"></i><?php endif; ?>
+                                    </a>
+                                </th>
+                                <th style="width: 150px;">
+                                    <a href="?<?php echo http_build_query(array_merge($_GET, ['sort' => 'tabla', 'dir' => $nextDir])); ?>" class="text-decoration-none text-dark">
+                                        Tabla <?php if ($sort === 'tabla'): ?><i class="icon-<?php echo ($dir === 'ASC') ? 'up-dir' : 'down-dir'; ?> ms-1"></i><?php endif; ?>
+                                    </a>
+                                </th>
                                 <th>Detalles</th>
-                                <th style="width: 130px;">IP</th>
-                                <th style="width: 180px;">Fecha</th>
+                                <th style="width: 130px;">
+                                    <a href="?<?php echo http_build_query(array_merge($_GET, ['sort' => 'ip', 'dir' => $nextDir])); ?>" class="text-decoration-none text-dark">
+                                        IP <?php if ($sort === 'ip'): ?><i class="icon-<?php echo ($dir === 'ASC') ? 'up-dir' : 'down-dir'; ?> ms-1"></i><?php endif; ?>
+                                    </a>
+                                </th>
+                                <th style="width: 180px;">
+                                    <a href="?<?php echo http_build_query(array_merge($_GET, ['sort' => 'fecha', 'dir' => $nextDir])); ?>" class="text-decoration-none text-dark">
+                                        Fecha <?php if ($sort === 'fecha'): ?><i class="icon-<?php echo ($dir === 'ASC') ? 'up-dir' : 'down-dir'; ?> ms-1"></i><?php endif; ?>
+                                    </a>
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
@@ -75,10 +102,10 @@
 
                             if (!empty($termino)) {
                                 $totalRegistros = $modelo->contarRegistrosPorBusqueda($termino);
-                                $registros = $modelo->buscar($termino, $registrosPorPagina, $offset);
+                                $registros = $modelo->buscar($termino, $registrosPorPagina, $offset, $sort, $dir);
                             } else {
                                 $totalRegistros = $modelo->contarRegistros();
-                                $registros = $modelo->obtenerTodos($registrosPorPagina, $offset);
+                                $registros = $modelo->obtenerTodos($registrosPorPagina, $offset, $sort, $dir);
                             }
 
                             if ($registros):
@@ -120,7 +147,7 @@
 
                         for ($i = $start; $i <= $end; $i++): ?>
                             <li class="page-item <?= $i == $paginaActual ? 'active' : '' ?>">
-                                <a class="page-link" href="?pagina=<?= $i ?>&registrosPorPagina=<?= $registrosPorPagina ?>&busqueda=<?= urlencode($termino) ?>"><?= $i ?></a>
+                                <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['pagina' => $i])); ?>"><?= $i ?></a>
                             </li>
                         <?php endfor; ?>
                     </ul>

@@ -1,5 +1,5 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
+if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     session_start();
 }
 
@@ -14,24 +14,31 @@ if (session_status() === PHP_SESSION_NONE) {
         }
     }
 
-    // Prioridad: POST > SESSION > ENV > Default (Usando ?? para evitar Undefined Key y ?: para ignorar vacíos)
+    // Prioridad: POST > SESSION > ENV > Default 
+    // Usamos (POST ?: SESSION) para asegurar que un valor vacío en POST no sobrescriba un valor real en SESSION
     $servidor = (($_POST['host'] ?? '') ?: ($_SESSION['db_host'] ?? '') ?: getenv('DB_HOST')) ?: 'localhost';
     $usuario  = (($_POST['usuario'] ?? '') ?: ($_SESSION['db_user'] ?? '') ?: getenv('DB_USER')) ?: 'root';
-    $password = $_POST['password'] ?? $_SESSION['db_pass'] ?? getenv('DB_PASS') ?? '';
+    $password = (isset($_POST['password']) && $_POST['password'] !== '') ? $_POST['password'] : ($_SESSION['db_pass'] ?? getenv('DB_PASS') ?: '');
     $puerto   = (($_POST['puerto'] ?? '') ?: ($_SESSION['db_port'] ?? '') ?: getenv('DB_PORT')) ?: 3306;
 
-    // Fix: En Windows, 'localhost' usa pipes y ignora el puerto. Si se usa un puerto no estándar (ej: Docker 3308),
-    // se debe forzar la IP 127.0.0.1 para usar TCP/IP.
-    if ($servidor === 'localhost' && $puerto != 3306) {
+    // Solo forzar 127.0.0.1 si estamos en Windows y el puerto no es el estándar
+    // o si el usuario específicamente tiene problemas con 'localhost' y sockets.
+    // En Linux, 'localhost' y '127.0.0.1' pueden tener permisos distintos en MySQL.
+    if ($servidor === 'localhost' && $puerto != 3306 && strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
         $servidor = '127.0.0.1';
     }
 
+    // Depuración (solo para logs del servidor, enmascarando password)
+    $pass_status = empty($password) ? 'vacia' : 'presente (len:' . strlen($password) . ')';
+    // error_log("Conectando a $servidor:$puerto con usuario $usuario y pass $pass_status");
+
     try {
-        if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['base_datos']) && !empty($_POST['base_datos'])) {
-            $dbname = $_POST['base_datos'];
+        $dbname = ($_POST['base_datos'] ?? '') ?: ($_SESSION['base_datos'] ?? '');
+        
+        if (!empty($dbname)) {
             $conexion = new mysqli($servidor, $usuario, $password, $dbname, $puerto);
         } else {
-            // Manejar el caso cuando no se ha enviado el formulario
+            // Conectar sin base de datos si no hay ninguna especificada
             $conexion = new mysqli($servidor, $usuario, $password, null, $puerto);
         }
     } catch (Throwable $e) {

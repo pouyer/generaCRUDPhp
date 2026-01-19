@@ -21,10 +21,12 @@ class ModeloAcc_rol_x_usuario {
     }
 
     public function contarRegistrosPorBusqueda($termino) {
-        $query = "SELECT COUNT(*) as total FROM acc_rol_x_usuario WHERE ";
+        $query = "SELECT COUNT(*) as total FROM v_acc_rol_x_usuario WHERE ";
         $camposBusqueda = [];
         $camposBusqueda[] = "`id_usuario`";
+        $camposBusqueda[] = "`nombre_usuario`";
         $camposBusqueda[] = "`id_rol`";
+        $camposBusqueda[] = "`nombre_rol`";
         $camposBusqueda[] = "`fecha_creacion`";
         $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ?";
         $stmt = $this->conexion->prepare($query);
@@ -34,9 +36,12 @@ class ModeloAcc_rol_x_usuario {
         $resultado = $stmt->get_result();
         return $resultado ? $resultado->fetch_assoc()['total'] : false;
     }
-    public function obtenerTodos($registrosPorPagina, $offset) {
-        $query = "SELECT * FROM acc_rol_x_usuario";
-        $query .= " LIMIT ? OFFSET ?";
+    public function obtenerTodos($registrosPorPagina, $offset, $orderBy = null, $orderDir = 'ASC') {
+        $columnasPermitidas = ['id_usuario', 'nombre_usuario', 'id_rol', 'nombre_rol', 'fecha_creacion'];
+        $orderBy = in_array($orderBy, $columnasPermitidas) ? $orderBy : 'nombre_usuario, nombre_rol';
+        $orderDir = strtoupper($orderDir) === 'DESC' ? 'DESC' : 'ASC';
+
+        $query = "SELECT * FROM v_acc_rol_x_usuario ORDER BY $orderBy $orderDir LIMIT ? OFFSET ?";
         $stmt = $this->conexion->prepare($query);
         $stmt->bind_param('ii', $registrosPorPagina, $offset);
         $stmt->execute();
@@ -59,12 +64,20 @@ class ModeloAcc_rol_x_usuario {
         $tipos = '';
         $params = [];
 
-        if (empty($datos['id_usuario'])) {
-            throw new Exception('El campo id_usuario es requerido.');
-        } elseif (isset($datos['id_usuario'])) {
-            $campos[] = '`id_usuario`';
+        if (array_key_exists('id_rol', $datos)) {
+            if ($datos['id_rol'] === '') throw new Exception('El campo id_rol es requerido.');
+            $campos[] = '`id_rol`';
             $valores[] = '?';
-            $params[] = $datos['id_usuario'];
+            $params[] = $datos['id_rol'];
+            $tipos .= 'i';
+        }
+
+        // Datos de auditoría
+        $usuario_id = $_SESSION['usuario_id'] ?? null;
+        if ($usuario_id) {
+            $campos[] = '`usuario_id_inserto`';
+            $valores[] = '?';
+            $params[] = $usuario_id;
             $tipos .= 'i';
         }
 
@@ -83,11 +96,17 @@ class ModeloAcc_rol_x_usuario {
         $tipos_pk = 'i'; // Para la llave primaria
         $params = [];
 
-        if (empty($datos['id_usuario'])) {
-            throw new Exception('El campo id_usuario es requerido.');
-        } elseif (isset($datos['id_usuario'])) {
-            $actualizaciones[] = "`id_usuario` = ?";
-            $params[] = $datos['id_usuario'];
+        if (!empty($datos['id_rol'])) {
+            $actualizaciones[] = "`id_rol` = ?";
+            $params[] = $datos['id_rol'];
+            $tipos .= 'i';
+        }
+
+        // Datos de auditoría
+        $usuario_id = $_SESSION['usuario_id'] ?? null;
+        if ($usuario_id) {
+            $actualizaciones[] = "`usuario_id_actualizo` = ?";
+            $params[] = $usuario_id;
             $tipos .= 'i';
         }
 
@@ -107,13 +126,19 @@ class ModeloAcc_rol_x_usuario {
         $stmt->bind_param('i', $id);
         return $stmt->execute();
     }
-    public function buscar($termino, $registrosPorPagina, $offset) {
-        $query = "SELECT * FROM acc_rol_x_usuario WHERE ";
+    public function buscar($termino, $registrosPorPagina, $offset, $orderBy = null, $orderDir = 'ASC') {
+        $columnasPermitidas = ['id_usuario', 'nombre_usuario', 'id_rol', 'nombre_rol', 'fecha_creacion'];
+        $orderBy = in_array($orderBy, $columnasPermitidas) ? $orderBy : 'nombre_usuario, nombre_rol';
+        $orderDir = strtoupper($orderDir) === 'DESC' ? 'DESC' : 'ASC';
+
+        $query = "SELECT * FROM v_acc_rol_x_usuario WHERE ";
         $camposBusqueda = [];
         $camposBusqueda[] = "`id_usuario`";
+        $camposBusqueda[] = "`nombre_usuario`";
         $camposBusqueda[] = "`id_rol`";
+        $camposBusqueda[] = "`nombre_rol`";
         $camposBusqueda[] = "`fecha_creacion`";
-        $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ? LIMIT ? OFFSET ?";
+        $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ? ORDER BY $orderBy $orderDir LIMIT ? OFFSET ?";
         $stmt = $this->conexion->prepare($query);
         $termino = "%" . $termino . "%";
         $stmt->bind_param('sii', $termino, $registrosPorPagina, $offset);
@@ -123,10 +148,12 @@ class ModeloAcc_rol_x_usuario {
     }
     public function exportarDatos($termino = '') {
         try {
-            $query = "SELECT * FROM acc_rol_x_usuario WHERE ";
+            $query = "SELECT * FROM v_acc_rol_x_usuario WHERE ";
             $camposBusqueda = [];
             $camposBusqueda[] = "`id_usuario`";
+            $camposBusqueda[] = "`nombre_usuario`";
             $camposBusqueda[] = "`id_rol`";
+            $camposBusqueda[] = "`nombre_rol`";
             $camposBusqueda[] = "`fecha_creacion`";
             $query .= "CONCAT_WS(' ', " . implode(', ', $camposBusqueda) . ") LIKE ?";
             if (!$this->conexion) {

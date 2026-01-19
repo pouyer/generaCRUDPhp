@@ -7,6 +7,9 @@
 require_once '../verificar_sesion.php';
 $registrosPorPagina = isset($_GET['registrosPorPagina']) ? (int)$_GET['registrosPorPagina'] : 10;
 $paginaActual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
+$sort = $_GET['sort'] ?? 'id_usuario';
+$dir = $_GET['dir'] ?? 'DESC';
+$nextDir = ($dir === 'ASC') ? 'DESC' : 'ASC';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -81,11 +84,31 @@ $paginaActual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
                     <table class="table table-hover align-middle">
                         <thead>
                             <tr>
-                                <th class="ps-3">ID</th>
-                                <th>Usuario</th>
-                                <th>Nombre completo</th>
-                                <th>Email</th>
-                                <th>Estado</th>
+                                <th class="ps-3">
+                                    <a href="?<?php echo http_build_query(array_merge($_GET, ['sort' => 'id_usuario', 'dir' => $nextDir])); ?>" class="text-decoration-none text-muted">
+                                        ID <?php if ($sort === 'id_usuario'): ?><i class="icon-<?php echo ($dir === 'ASC') ? 'up-dir' : 'down-dir'; ?> ms-1"></i><?php endif; ?>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="?<?php echo http_build_query(array_merge($_GET, ['sort' => 'username', 'dir' => $nextDir])); ?>" class="text-decoration-none text-muted">
+                                        Usuario <?php if ($sort === 'username'): ?><i class="icon-<?php echo ($dir === 'ASC') ? 'up-dir' : 'down-dir'; ?> ms-1"></i><?php endif; ?>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="?<?php echo http_build_query(array_merge($_GET, ['sort' => 'fullname', 'dir' => $nextDir])); ?>" class="text-decoration-none text-muted">
+                                        Nombre completo <?php if ($sort === 'fullname'): ?><i class="icon-<?php echo ($dir === 'ASC') ? 'up-dir' : 'down-dir'; ?> ms-1"></i><?php endif; ?>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="?<?php echo http_build_query(array_merge($_GET, ['sort' => 'correo', 'dir' => $nextDir])); ?>" class="text-decoration-none text-muted">
+                                        Email <?php if ($sort === 'correo'): ?><i class="icon-<?php echo ($dir === 'ASC') ? 'up-dir' : 'down-dir'; ?> ms-1"></i><?php endif; ?>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="?<?php echo http_build_query(array_merge($_GET, ['sort' => 'estado', 'dir' => $nextDir])); ?>" class="text-decoration-none text-muted">
+                                        Estado <?php if ($sort === 'estado'): ?><i class="icon-<?php echo ($dir === 'ASC') ? 'up-dir' : 'down-dir'; ?> ms-1"></i><?php endif; ?>
+                                    </a>
+                                </th>
                                 <th class="text-center pe-3">Acciones</th>
                             </tr>
                         </thead>
@@ -118,9 +141,9 @@ $paginaActual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
                                 <td><?= htmlspecialchars($reg['fullname']) ?></td>
                                 <td class="small text-muted"><?= htmlspecialchars($reg['correo']) ?></td>
                                 <td>
-                                    <span class="badge <?= $reg['estado'] === 'A' ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' ?> rounded-pill px-3">
-                                        <?= $reg['estado'] === 'A' ? 'Activo' : 'Inactivo' ?>
-                                    </span>
+                                    <div class="form-check form-switch ps-0">
+                                        <input class="form-check-input ms-0" type="checkbox" disabled <?php echo ($reg['estado'] == 'activo') ? 'checked' : ''; ?>>
+                                    </div>
                                 </td>
                                 <td class="text-center pe-3">
                                     <div class="btn-group shadow-sm">
@@ -200,11 +223,12 @@ $paginaActual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
                                 <input type="password" class="form-control bg-light border-0 p-3" name="password" required>
                             </div>
                             <div class="col-md-12">
-                                <label class="form-label small fw-bold">ESTADO</label>
-                                <select class="form-select bg-light border-0 p-3" name="estado" required>
-                                    <option value="A">Activo</option>
-                                    <option value="I">Inactivo</option>
-                                </select>
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-3">Estado</label>
+                                <div class="form-check form-switch p-0 d-flex align-items-center gap-3 bg-light p-3 rounded-3">
+                                    <input class="form-check-input ms-0" type="checkbox" id="switch_crear" checked style="width: 3em; height: 1.5em; cursor: pointer;">
+                                    <label class="form-check-label fw-bold text-success mb-0" for="switch_crear" id="label_switch_crear">ACTIVO</label>
+                                    <input type="hidden" name="estado" id="estado_crear" value="activo">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -241,11 +265,12 @@ $paginaActual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
                                 <input type="email" class="form-control bg-light border-0 p-3" id="upd_correo" name="correo">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold">ESTADO</label>
-                                <select class="form-select bg-light border-0 p-3" id="upd_estado" name="estado" required>
-                                    <option value="A">Activo</option>
-                                    <option value="I">Inactivo</option>
-                                </select>
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-3">Estado</label>
+                                <div class="form-check form-switch p-0 d-flex align-items-center gap-3 bg-light p-3 rounded-3">
+                                    <input class="form-check-input ms-0" type="checkbox" id="switch_actualizar" style="width: 3em; height: 1.5em; cursor: pointer;">
+                                    <label class="form-check-label fw-bold mb-0" for="switch_actualizar" id="label_switch_actualizar">ACTIVO</label>
+                                    <input type="hidden" name="estado" id="estado_actualizar">
+                                </div>
                             </div>
                             <div class="col-12">
                                 <hr class="my-3 opacity-10">
@@ -312,11 +337,34 @@ $paginaActual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
         $(document).ready(function() {
             $('#modalActualizar').on('show.bs.modal', function(event) {
                 const btn = $(event.relatedTarget);
-                $('#upd_id_usuario').val(btn.data('id-usuario'));
                 $('#upd_username').val(btn.data('username'));
                 $('#upd_fullname').val(btn.data('fullname'));
                 $('#upd_correo').val(btn.data('correo'));
-                $('#upd_estado').val(btn.data('estado'));
+                
+                const estado = btn.data('estado');
+                const isActivo = estado === 'activo';
+                $('#switch_actualizar').prop('checked', isActivo);
+                $('#estado_actualizar').val(estado);
+                $('#label_switch_actualizar').text(isActivo ? 'ACTIVO' : 'INACTIVO')
+                    .toggleClass('text-success', isActivo)
+                    .toggleClass('text-danger', !isActivo);
+            });
+
+            // Handlers para los Switches
+            $('#switch_crear').on('change', function() {
+                const isChecked = $(this).is(':checked');
+                $('#estado_crear').val(isChecked ? 'activo' : 'inactivo');
+                $('#label_switch_crear').text(isChecked ? 'ACTIVO' : 'INACTIVO')
+                    .toggleClass('text-success', isChecked)
+                    .toggleClass('text-danger', !isChecked);
+            });
+
+            $('#switch_actualizar').on('change', function() {
+                const isChecked = $(this).is(':checked');
+                $('#estado_actualizar').val(isChecked ? 'activo' : 'inactivo');
+                $('#label_switch_actualizar').text(isChecked ? 'ACTIVO' : 'INACTIVO')
+                    .toggleClass('text-success', isChecked)
+                    .toggleClass('text-danger', !isChecked);
             });
 
             $('#modalRoles').on('show.bs.modal', function(event) {

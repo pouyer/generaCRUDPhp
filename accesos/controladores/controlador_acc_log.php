@@ -75,7 +75,13 @@ $controlador = new ControladorAcc_log();
 if ($accion === 'exportar') {
     $controlador->exportar($_GET['formato'] ?? 'excel');
 } else {
-    // Para búsqueda y visualización normal
+    $registrosPorPagina = (int)($_GET['registrosPorPagina'] ?? 100);
+    $paginaActual = (int)($_GET['pagina'] ?? 1);
+    $sort = isset($_GET['sort']) ? str_replace(['`', ' '], '', $_GET['sort']) : null;
+    $dir = $_GET['dir'] ?? 'DESC';
+    $offset = ($paginaActual - 1) * $registrosPorPagina;
+    
+    // Estos parámetros serán usados directamente por el modelo dentro de la vista
     include '../vistas/vista_acc_log.php';
 }
 ?>
