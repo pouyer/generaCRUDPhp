@@ -22,8 +22,8 @@ if (isset($_POST['config_tablas'])) {
     $_SESSION['config_tablas'] = $_POST['config_tablas'];
     
     // Persistir en base de datos si hay conexión
-    require_once 'conexion.php';
-    require_once 'funciones_utilidades.php';
+    require_once __DIR__ . '/conexion.php';
+    require_once __DIR__ . '/funciones_utilidades.php';
     
     if (isset($conexion)) {
         verificar_tabla_configuracion($conexion);
@@ -47,29 +47,38 @@ if (isset($_POST['config_tablas'])) {
 
 // Nueva acción: Cargar configuración desde BD
 if (isset($_POST['accion']) && $_POST['accion'] === 'cargar_config' && isset($_POST['tabla'])) {
-    require_once 'conexion.php';
-    require_once 'funciones_utilidades.php';
-    $tabla = $_POST['tabla'];
-    $proyecto = (!empty($_SESSION['nombre_proyecto'])) ? $_SESSION['nombre_proyecto'] : null;
-    
-    if (isset($conexion)) {
+    header('Content-Type: application/json');
+    try {
+        require_once __DIR__ . '/conexion.php';
+        require_once __DIR__ . '/funciones_utilidades.php';
+        
+        if (!isset($conexion) || $conexion->connect_errno) {
+            throw new Exception("Error de conexión a la base de datos");
+        }
+
+        $tabla = $_POST['tabla'];
+        $proyecto = (!empty($_SESSION['nombre_proyecto'])) ? $_SESSION['nombre_proyecto'] : null;
+        
         verificar_tabla_configuracion($conexion);
+        
         // Ajustar consulta para manejar NULL correctamente
         $sql = "SELECT configuracion_json FROM acc_configuracion_objeto WHERE nombre_objeto = ? AND (nombre_proyecto <=> ?)";
         $stmt = $conexion->prepare($sql);
+        
         if ($stmt) {
             $stmt->bind_param('ss', $tabla, $proyecto);
             $stmt->execute();
             $res = $stmt->get_result();
             if ($fila = $res->fetch_assoc()) {
-                header('Content-Type: application/json');
                 echo $fila['configuracion_json'];
                 exit;
             }
             $stmt->close();
         }
+        echo json_encode(['success' => true, 'message' => 'No config found', 'data' => null]);
+    } catch (Throwable $e) {
+        echo json_encode(['error' => $e->getMessage()]);
     }
-    echo json_encode(['error' => 'No config found']);
     exit;
 }
 ?>

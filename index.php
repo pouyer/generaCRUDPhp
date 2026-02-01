@@ -1,5 +1,9 @@
 <?php
 session_start();
+// Habilitar errores para diagnóstico de renderizado
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 // Incluir archivos necesarios
 require_once('include/funciones_utilidades.php');
@@ -41,7 +45,10 @@ if (!empty($_POST['usuario'])) $_SESSION['db_user'] = $_POST['usuario'];
 if (!empty($_POST['password'])) $_SESSION['db_pass'] = $_POST['password'];
 if (!empty($_POST['puerto'])) $_SESSION['db_port'] = $_POST['puerto'];
 
-// Guardar configuración SMTP en sesión si se envía y no está vacía
+if (!empty($_POST['base_datos'])) {
+    $_SESSION['base_datos'] = $_POST['base_datos'];
+}
+
 if (!empty($_POST['smtp_host'])) $_SESSION['smtp_host'] = $_POST['smtp_host'];
 if (!empty($_POST['smtp_user'])) $_SESSION['smtp_user'] = $_POST['smtp_user'];
 if (!empty($_POST['smtp_pass'])) $_SESSION['smtp_pass'] = $_POST['smtp_pass'];
@@ -279,11 +286,7 @@ if (isset($_POST['generar_crud'])) {
 
         <!-- Formulario para seleccionar tablas -->
 <?php 
-if ((isset($_POST['mostrar_tablas']) || isset($_POST['base_datos']) || (isset($_SESSION['base_datos']) && !empty($_SESSION['base_datos']))) ) {
-    // Si no viene por POST pero hay sesión, rellenar POST para que funcione la lógica siguiente
-    if (!isset($_POST['base_datos']) && isset($_SESSION['base_datos'])) {
-        $_POST['base_datos'] = $_SESSION['base_datos'];
-    }
+if (isset($_POST['mostrar_tablas']) || isset($_POST['actualizar_db']) || !empty($_POST['base_datos'])) {
     // Incluir archivo de conexión
     require_once('include/conexion.php');
     
@@ -299,7 +302,7 @@ if ((isset($_POST['mostrar_tablas']) || isset($_POST['base_datos']) || (isset($_
         error_log("Error al seleccionar base de datos en index.php: " . $e->getMessage());
     }
 
-    if (isset($_POST['base_datos'])) { // Solo procedemos si la selección fue exitosa
+    if (!empty($_POST['base_datos'])) { // Solo procedemos si la selección fue exitosa
         // Obtener la lista de tablas
 
         $sql = "SELECT TABLE_NAME , TABLE_COMMENT, TABLE_TYPE\n
@@ -537,7 +540,9 @@ if ((isset($_POST['mostrar_tablas']) || isset($_POST['base_datos']) || (isset($_
         function abrirExploradorCarpetas() {
             var rutaActual = $('#ruta').val();
             cargarDirectorio(rutaActual);
-            $('#modalExplorador').modal('show');
+            var modalEl = document.getElementById('modalExplorador');
+            var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
         }
 
         function cargarDirectorio(ruta) {
@@ -574,7 +579,9 @@ if ((isset($_POST['mostrar_tablas']) || isset($_POST['base_datos']) || (isset($_
         function seleccionarCarpetaExplorer() {
             var rutaSeleccionada = $('#explorer_current_path').val();
             $('#ruta').val(rutaSeleccionada);
-            $('#modalExplorador').modal('hide');
+            var modalEl = document.getElementById('modalExplorador');
+            var modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
             
             // Actualizar sesión
             $.post('include/actualizar_sesion.php', {
@@ -699,21 +706,44 @@ if ((isset($_POST['mostrar_tablas']) || isset($_POST['base_datos']) || (isset($_
         }
 
         // --- Lógica de Configuración de Tablas ---
-        var tablasConfig = <?php echo isset($_SESSION['config_tablas']) ? $_SESSION['config_tablas'] : '{}'; ?>; // Objeto global persistido en sesión
+        var tablasConfig = <?php 
+            $config_base = isset($_SESSION['config_tablas']) ? $_SESSION['config_tablas'] : '{}';
+            // Validar que sea un JSON válido o resetear
+            if (!empty($config_base) && is_string($config_base)) {
+                json_decode($config_base);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    $config_base = '{}';
+                }
+            } else {
+                $config_base = '{}';
+            }
+            echo $config_base; 
+        ?>; // Objeto global persistido en sesión
 
         function configurarRelaciones(tabla) {
             $('#rel_tabla_nombre').text(tabla);
             $('#relaciones_container').html('<div class="text-center p-3"><div class="spinner-border text-primary"></div><p>Buscando configuración...</p></div>');
             $('#campos_config_container').html('<p class="text-muted text-center">Cargando campos...</p>');
-            $('#modalRelaciones').modal('show');
+            
+            var modalEl = document.getElementById('modalRelaciones');
+            var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
 
             var base_datos = $('#base_datos').val();
             
             // Intentar cargar configuración desde BD primero
-            $.post('include/actualizar_sesion.php', { accion: 'cargar_config', tabla: tabla }, function(dbConfig) {
-                var configExistente = (dbConfig && !dbConfig.error) ? dbConfig : (tablasConfig[tabla] || { relaciones: {}, columns: 2, fields: {} });
+            $.post('include/actualizar_sesion.php', { 
+                accion: 'cargar_config', 
+                tabla: tabla,
+                base_datos: base_datos 
+            }, function(dbConfig) {
+                if (dbConfig.error) {
+                    console.warn("Aviso al cargar config:", dbConfig.error);
+                }
                 
-                // Sincronizar con el objeto global para asegurar que se use al generar
+                var configExistente = (dbConfig && typeof dbConfig === 'object' && !dbConfig.error) ? dbConfig : (tablasConfig[tabla] || { relaciones: {}, columns: 2, fields: {} });
+                
+                // Sincronizar con el objeto global
                 tablasConfig[tabla] = configExistente;
                 
                 $.post('include/obtener_relaciones.php', { base_datos: base_datos, tabla: tabla }, function(response) {
@@ -722,17 +752,17 @@ if ((isset($_POST['mostrar_tablas']) || isset($_POST['base_datos']) || (isset($_
                         return;
                     }
                     
-                    // Poblar selectores de ordenamiento predeterminado
+                    // Poblar selectores de ordenamiento
                     $('.select-sort-field').empty().append('<option value="">-- Ninguno --</option>');
-                    response.columnas_tabla.forEach(function(col) {
-                        $('.select-sort-field').append('<option value="' + col + '">' + col + '</option>');
-                    });
+                    if (response.columnas_tabla) {
+                        response.columnas_tabla.forEach(function(col) {
+                            $('.select-sort-field').append('<option value="' + col + '">' + col + '</option>');
+                        });
+                    }
                     
-                    // Limpiar previos
                     $('.select-sort-field').val('');
                     $('#sort_dir_1, #sort_dir_2, #sort_dir_3').val('ASC');
 
-                    // Cargar valores de ordenamiento si existen
                     if (configExistente.sort && Array.isArray(configExistente.sort)) {
                         configExistente.sort.forEach(function(s, idx) {
                             var n = idx + 1;
@@ -743,95 +773,96 @@ if ((isset($_POST['mostrar_tablas']) || isset($_POST['base_datos']) || (isset($_
                         });
                     }
 
-                // 4. Cargar Pestaña Apariencia
-                $('#config_tema').val(configExistente.tema || 'azul');
-                $('#config_color').val(configExistente.color || '#1e3c72');
-                $('#config_icono').val(configExistente.icono || 'icon-table');
-                $('#preview_icono_btn i').attr('class', configExistente.icono || 'icon-dot-circled');
+                    // Apariencia
+                    $('#config_tema').val(configExistente.tema || 'azul');
+                    $('#config_color').val(configExistente.color || '#1e3c72');
+                    $('#config_icono').val(configExistente.icono || 'icon-table');
+                    $('#preview_icono_btn i').attr('class', configExistente.icono || 'icon-dot-circled');
 
-                // 1. Cargar Pestaña Relaciones
-                if (response.relaciones.length === 0) {
-                    $('#relaciones_container').html('<div class="alert alert-info">No se detectaron llaves foráneas para esta tabla.</div>');
-                } else {
-                    var htmlRel = '<div class="table-responsive"><table class="table table-sm">';
-                    htmlRel += '<thead><tr><th>Campo Local</th><th>Tabla Relacionada</th><th>Mostrar</th><th>Ordenar por</th><th>Filtro SQL (Condition)</th></tr></thead><tbody>';
+                    // Relaciones
+                    if (!response.relaciones || response.relaciones.length === 0) {
+                        $('#relaciones_container').html('<div class="alert alert-info">No se detectaron llaves foráneas para esta tabla.</div>');
+                    } else {
+                        var htmlRel = '<div class="table-responsive"><table class="table table-sm">';
+                        htmlRel += '<thead><tr><th>Campo Local</th><th>Tabla Relacionada</th><th>Mostrar</th><th>Ordenar por</th><th>Filtro SQL</th></tr></thead><tbody>';
 
-                    response.relaciones.forEach(function(rel) {
-                        var currentDisplay = (configExistente.relaciones[rel.campo_local]) ? configExistente.relaciones[rel.campo_local].display : '';
-                        var currentSort = (configExistente.relaciones[rel.campo_local]) ? configExistente.relaciones[rel.campo_local].sort_by : '';
-                        var currentWhere = (configExistente.relaciones[rel.campo_local]) ? (configExistente.relaciones[rel.campo_local].where || '') : '';
-                        
-                        htmlRel += '<tr><td><code>' + rel.campo_local + '</code></td><td><code>' + rel.tabla_padre + '</code></td><td>';
-                        htmlRel += '<select class="form-select select-rel-display" data-campo="' + rel.campo_local + '" data-parent="' + rel.tabla_padre + '" data-parentid="' + rel.campo_padre + '" data-nullable="' + rel.es_nullable + '">';
-                        htmlRel += '<option value="">-- No usar relación --</option>';
-                        rel.columnas_padre.forEach(function(col) {
-                            var selected = (col === currentDisplay) ? 'selected' : '';
-                            htmlRel += '<option value="' + col + '" ' + selected + '>' + col + '</option>';
+                        response.relaciones.forEach(function(rel) {
+                            var relConf = configExistente.relaciones ? configExistente.relaciones[rel.campo_local] : null;
+                            var currentDisplay = relConf ? relConf.display : '';
+                            var currentSort = relConf ? relConf.sort_by : '';
+                            var currentWhere = relConf ? (relConf.where || '') : '';
+                            
+                            htmlRel += '<tr><td><code>' + rel.campo_local + '</code></td><td><code>' + rel.tabla_padre + '</code></td><td>';
+                            htmlRel += '<select class="form-select select-rel-display" data-campo="' + rel.campo_local + '" data-parent="' + rel.tabla_padre + '" data-parentid="' + rel.campo_padre + '" data-nullable="' + rel.es_nullable + '">';
+                            htmlRel += '<option value="">-- No usar relación --</option>';
+                            rel.columnas_padre.forEach(function(col) {
+                                var selected = (col === currentDisplay) ? 'selected' : '';
+                                htmlRel += '<option value="' + col + '" ' + selected + '>' + col + '</option>';
+                            });
+                            htmlRel += '</select></td>';
+                            
+                            htmlRel += '<td><select class="form-select select-rel-sort" data-campo="' + rel.campo_local + '">';
+                            htmlRel += '<option value="">(Auto: Campo Mostrar)</option>';
+                            rel.columnas_padre.forEach(function(col) {
+                                var selectedS = (col === currentSort) ? 'selected' : '';
+                                htmlRel += '<option value="' + col + '" ' + selectedS + '>' + col + '</option>';
+                            });
+                            htmlRel += '</select></td>';
+                            
+                            htmlRel += '<td><input type="text" class="form-control form-select-sm input-rel-where" data-campo="' + rel.campo_local + '" value="' + currentWhere + '" placeholder="ej: estado = \'activo\'"></td></tr>';
                         });
-                        htmlRel += '</select></td>';
-                        
-                        // Nuevo select para ordenar relación
-                        htmlRel += '<td><select class="form-select select-rel-sort" data-campo="' + rel.campo_local + '">';
-                        htmlRel += '<option value="">(Auto: Campo Mostrar)</option>';
-                        rel.columnas_padre.forEach(function(col) {
-                            var selectedS = (col === currentSort) ? 'selected' : '';
-                        htmlRel += '<option value="' + col + '" ' + selectedS + '>' + col + '</option>';
-                        });
-                        htmlRel += '</select></td>';
-                        
-                        // Nuevo input para filtro SQL
-                        htmlRel += '<td><input type="text" class="form-control form-select-sm input-rel-where" data-campo="' + rel.campo_local + '" value="' + currentWhere + '" placeholder="ej: estado = \'activo\'"></td></tr>';
+                        htmlRel += '</tbody></table></div>';
+                        $('#relaciones_container').html(htmlRel);
+                    }
+
+                    // Layout
+                    $('#num_columnas').val(configExistente.columns || 2);
+
+                    // Campos
+                    var htmlCampos = '<div class="table-responsive"><table class="table table-sm table-striped" id="tabla-campos-config">';
+                    htmlCampos += '<thead><tr><th>Orden</th><th>Campo</th><th class="text-center">Listado</th><th class="text-center">Exportar</th><th class="text-center">Auditoría</th></tr></thead><tbody class="sortable-tbody">';
+
+                    var cols = [...(response.columnas_tabla || [])];
+                    cols.sort(function(a, b) {
+                        var orderA = (configExistente.fields && configExistente.fields[a] && configExistente.fields[a].order !== undefined) ? configExistente.fields[a].order : 999;
+                        var orderB = (configExistente.fields && configExistente.fields[b] && configExistente.fields[b].order !== undefined) ? configExistente.fields[b].order : 999;
+                        return orderA - orderB;
                     });
-                    htmlRel += '</tbody></table></div>';
-                    $('#relaciones_container').html(htmlRel);
-                }
 
-                // 2. Cargar Pestaña Layout
-                $('#num_columnas').val(configExistente.columns || 2);
+                    cols.forEach(function(col) {
+                        var fieldConf = configExistente.fields ? configExistente.fields[col] : null;
+                        var showInList = (fieldConf && fieldConf.list !== undefined) ? fieldConf.list : true;
+                        var showInExport = (fieldConf && fieldConf.export !== undefined) ? fieldConf.export : true;
+                        var auditConfig = (fieldConf && fieldConf.audit) ? fieldConf.audit : '';
+                        
+                        htmlCampos += '<tr class="campo-row" data-campo="' + col + '">';
+                        htmlCampos += '<td>';
+                        htmlCampos += '<button type="button" class="btn btn-xs btn-outline-secondary py-0" onclick="moverFila(this, \'up\')">▲</button>';
+                        htmlCampos += '<button type="button" class="btn btn-xs btn-outline-secondary py-0" onclick="moverFila(this, \'down\')">▼</button>';
+                        htmlCampos += '</td>';
+                        htmlCampos += '<td>' + col + '</td>';
+                        htmlCampos += '<td class="text-center"><input type="checkbox" class="check-list" data-campo="' + col + '" ' + (showInList ? 'checked' : '') + '></td>';
+                        htmlCampos += '<td class="text-center"><input type="checkbox" class="check-export" data-campo="' + col + '" ' + (showInExport ? 'checked' : '') + '></td>';
+                        htmlCampos += '<td><select class="form-select form-select-sm select-audit">';
+                        htmlCampos += '<option value="">Ninguno</option>';
+                        htmlCampos += '<option value="insert" ' + (auditConfig === 'insert' ? 'selected' : '') + '>Usuario Inserta</option>';
+                        htmlCampos += '<option value="update" ' + (auditConfig === 'update' ? 'selected' : '') + '>Usuario Modifica</option>';
+                        htmlCampos += '</select></td>';
+                        htmlCampos += '</tr>';
+                    });
+                    htmlCampos += '</tbody></table></div>';
+                    $('#campos_config_container').html(htmlCampos);
 
-                // 3. Cargar Pestaña Campos
-                var htmlCampos = '<div class="table-responsive"><table class="table table-sm table-striped" id="tabla-campos-config">';
-                htmlCampos += '<thead><tr><th>Orden</th><th>Campo</th><th class="text-center">Listado</th><th class="text-center">Exportar</th><th class="text-center">Auditoría Usuario</th></tr></thead><tbody class="sortable-tbody">';
-
-                // Ordenar campos según config existente
-                var cols = [...response.columnas_tabla];
-                cols.sort(function(a, b) {
-                    var orderA = (configExistente.fields[a] && configExistente.fields[a].order !== undefined) ? configExistente.fields[a].order : 999;
-                    var orderB = (configExistente.fields[b] && configExistente.fields[b].order !== undefined) ? configExistente.fields[b].order : 999;
-                    return orderA - orderB;
+                }, 'json').fail(function(xhr) {
+                    console.error("Error obtener_relaciones:", xhr.responseText);
+                    $('#relaciones_container').html('<div class="alert alert-danger">Error al obtener columnas y relaciones.</div>');
                 });
-
-                cols.forEach(function(col) {
-                    var showInList = (configExistente.fields[col] && configExistente.fields[col].list !== undefined) ? configExistente.fields[col].list : true;
-                    var showInExport = (configExistente.fields[col] && configExistente.fields[col].export !== undefined) ? configExistente.fields[col].export : true;
-                    
-                    var auditConfig = (configExistente.fields[col] && configExistente.fields[col].audit) ? configExistente.fields[col].audit : '';
-                    
-                    htmlCampos += '<tr class="campo-row" data-campo="' + col + '">';
-                    htmlCampos += '<td>';
-                    htmlCampos += '<button type="button" class="btn btn-xs btn-outline-secondary py-0" onclick="moverFila(this, \'up\')">▲</button>';
-                    htmlCampos += '<button type="button" class="btn btn-xs btn-outline-secondary py-0" onclick="moverFila(this, \'down\')">▼</button>';
-                    htmlCampos += '</td>';
-                    htmlCampos += '<td>' + col + '</td>';
-                    htmlCampos += '<td class="text-center"><input type="checkbox" class="check-list" data-campo="' + col + '" ' + (showInList ? 'checked' : '') + '></td>';
-                    htmlCampos += '<td class="text-center"><input type="checkbox" class="check-export" data-campo="' + col + '" ' + (showInExport ? 'checked' : '') + '></td>';
-                     // Columna Auditoria
-                    htmlCampos += '<td><select class="form-select form-select-sm select-audit">';
-                    htmlCampos += '<option value="">Ninguno</option>';
-                    htmlCampos += '<option value="insert" ' + (auditConfig === 'insert' ? 'selected' : '') + '>Usuario Inserta</option>';
-                    htmlCampos += '<option value="update" ' + (auditConfig === 'update' ? 'selected' : '') + '>Usuario Modifica</option>';
-                    htmlCampos += '</select></td>';
-                    htmlCampos += '</tr>';
-                });
-                htmlCampos += '</tbody></table></div>';
-                $('#campos_config_container').html(htmlCampos);
-
-            }, 'json').fail(function() {
-                $('#relaciones_container').html('<div class="alert alert-danger">Error al obtener columnas y relaciones de la tabla.</div>');
+            }, 'json').fail(function(xhr) {
+                console.error("Error cargar_config:", xhr.responseText);
+                var errorMsg = "Error al cargar la configuración persistente desde el servidor.";
+                if (xhr.responseJSON && xhr.responseJSON.error) errorMsg += "<br>Detalle: " + xhr.responseJSON.error;
+                $('#relaciones_container').html('<div class="alert alert-danger">' + errorMsg + '</div>');
             });
-          }, 'json').fail(function() {
-              $('#relaciones_container').html('<div class="alert alert-danger">Error al cargar la configuración persistente desde el servidor.</div>');
-          });
         }
 
         function guardarConfigRelaciones() {
@@ -965,6 +996,8 @@ if ((isset($_POST['mostrar_tablas']) || isset($_POST['base_datos']) || (isset($_
                 icon.classList.remove('text-primary');
             }
         }
+        // Cargar Bootstrap JS al final
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

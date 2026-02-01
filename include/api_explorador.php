@@ -3,11 +3,13 @@ header('Content-Type: application/json');
 
 // Obtener ruta inicial
 $ruta = isset($_POST['ruta']) && !empty($_POST['ruta']) ? $_POST['ruta'] : getcwd();
-$ruta = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $ruta);
-$ruta = realpath($ruta);
+$ruta = str_replace(['/', '\\'], '/', $ruta);
+$real_path = realpath($ruta);
 
-if (!$ruta || !is_dir($ruta)) {
-    // Si la ruta no es válida, volver al directorio actual o root
+if ($real_path && is_dir($real_path)) {
+    $ruta = $real_path;
+} elseif (!is_dir($ruta)) {
+    // Si la ruta no es válida ni existe, volver al directorio actual
     $ruta = getcwd();
 }
 
@@ -35,7 +37,7 @@ try {
     foreach ($items as $item) {
         if ($item === '.' || $item === '..') continue;
         
-        $fullPath = $ruta . DIRECTORY_SEPARATOR . $item;
+        $fullPath = $ruta . '/' . $item;
         
         if (is_dir($fullPath)) {
             $directorios[] = [

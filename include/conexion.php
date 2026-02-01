@@ -14,12 +14,12 @@ if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
         }
     }
 
-    // Prioridad: POST > SESSION > ENV > Default 
-    // Usamos (POST ?: SESSION) para asegurar que un valor vacío en POST no sobrescriba un valor real en SESSION
-    $servidor = (($_POST['host'] ?? '') ?: ($_SESSION['db_host'] ?? '') ?: getenv('DB_HOST')) ?: 'localhost';
-    $usuario  = (($_POST['usuario'] ?? '') ?: ($_SESSION['db_user'] ?? '') ?: getenv('DB_USER')) ?: 'root';
-    $password = (isset($_POST['password']) && $_POST['password'] !== '') ? $_POST['password'] : ($_SESSION['db_pass'] ?? getenv('DB_PASS') ?: '');
-    $puerto   = (($_POST['puerto'] ?? '') ?: ($_SESSION['db_port'] ?? '') ?: getenv('DB_PORT')) ?: 3306;
+    // Prioridad para el funcionamiento interno del GENERADOR: ENV > POST > SESSION > Default 
+    // Esto garantiza que el generador siempre use su propio .env si está presente.
+    $servidor = (getenv('DB_HOST') ?: ($_POST['host'] ?? '') ?: ($_SESSION['db_host'] ?? '')) ?: 'localhost';
+    $usuario  = (getenv('DB_USER') ?: ($_POST['usuario'] ?? '') ?: ($_SESSION['db_user'] ?? '')) ?: 'root';
+    $password = (getenv('DB_PASS') !== false) ? getenv('DB_PASS') : ((isset($_POST['password']) && $_POST['password'] !== '') ? $_POST['password'] : ($_SESSION['db_pass'] ?? ''));
+    $puerto   = (getenv('DB_PORT') ?: ($_POST['puerto'] ?? '') ?: ($_SESSION['db_port'] ?? '')) ?: 3306;
 
     // Solo forzar 127.0.0.1 si estamos en Windows y el puerto no es el estándar
     // o si el usuario específicamente tiene problemas con 'localhost' y sockets.
@@ -61,11 +61,19 @@ if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
                   
         } catch (Throwable $e2) {
              // Si falla también la conexión básica, entonces sí es fatal
-            $detalle = htmlspecialchars($e2->getMessage());
+            $detalle = $e2->getMessage();
+            $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest');
+            
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                die(json_encode(['success' => false, 'error' => "Error de Conexión Fatal: $detalle"]));
+            }
+
+            $detalle_html = htmlspecialchars($detalle);
             die("<div class='alert alert-danger'>
                 <h4>Error de Conexión Fatal</h4>
                 <p>No se pudo conectar al servidor de base de datos.</p>
-                <p><strong>Detalle:</strong> $detalle</p>
+                <p><strong>Detalle:</strong> $detalle_html</p>
                 <p><em>Sugerencia: Verifica Host, Usuario, Contraseña y Puerto. Recuerda usar '127.0.0.1' para puertos personalizados.</em></p>
             </div>");
         }
@@ -73,6 +81,11 @@ if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     
     // Verificar si la conexión fue exitosa
     if ($conexion->connect_errno) {
+        $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest');
+        if ($isAjax) {
+            header('Content-Type: application/json');
+            die(json_encode(['success' => false, 'error' => "Error de conexión: " . $conexion->connect_error]));
+        }
         die("Error de conexión: " . $conexion->connect_error);
     }
     

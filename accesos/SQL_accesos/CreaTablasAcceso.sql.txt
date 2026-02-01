@@ -66,7 +66,7 @@ CREATE TABLE `acc_usuario` (
   `id_usuario` int(11) NOT NULL AUTO_INCREMENT,
   `username` varchar(128) NOT NULL,
   `fullname` varchar(250) NOT NULL,
-  `correo` varchar(255) DEFAULT NULL,
+  `correo` varchar(255) NOT NULL,
   `password` varchar(255) DEFAULT NULL,
   `estado` enum('activo','inactivo') DEFAULT 'activo',
   `cambio_clave_obligatorio` BOOLEAN NOT NULL DEFAULT FALSE,
@@ -75,7 +75,8 @@ CREATE TABLE `acc_usuario` (
   `fecha_insercion` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `usuario_id_actualizo` INT,
   `fecha_actualizacion` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id_usuario`)
+  PRIMARY KEY (`id_usuario`),
+  UNIQUE KEY `indx_tabla` (`username`,`correo`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `acc_programa` (

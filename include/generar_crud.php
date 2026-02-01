@@ -32,11 +32,11 @@ if (!empty($missingFields)) {
 }
 
 // Incluir todos los archivos necesarios
-require_once('funciones_utilidades.php');
-require_once('conexion.php');
-require_once('generar_modelo.php');
-require_once('generar_vista.php');
-require_once('generar_controlador.php');
+require_once __DIR__ . '/funciones_utilidades.php';
+require_once __DIR__ . '/conexion.php';
+require_once __DIR__ . '/generar_modelo.php';
+require_once __DIR__ . '/generar_vista.php';
+require_once __DIR__ . '/generar_controlador.php';
 
 // Función principal para generar el CRUD completo
 function generar_crud_completo($tabla, $baseDatos, $ruta, $nombre_archivo, $tipo_tabla, $config_tabla = []) {

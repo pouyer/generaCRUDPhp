@@ -24,12 +24,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
     //$ruta .= '/configuracion' ;
     // Limpiar y normalizar la ruta
-    $ruta = str_replace('\\', DIRECTORY_SEPARATOR, $ruta);
-    $ruta = str_replace('/', DIRECTORY_SEPARATOR, $ruta);
-    $ruta = rtrim($ruta, DIRECTORY_SEPARATOR);
+    $ruta = str_replace('\\', '/', $ruta);
+    $ruta = str_replace('//', '/', $ruta);
+    $ruta = rtrim($ruta, '/');
 
     // Crear la ruta completa del archivo
-    $ruta_completa = $ruta . DIRECTORY_SEPARATOR . $nombre_archivo;
+    $ruta_completa = $ruta . '/' . $nombre_archivo;
 
     try {
         // Verificar si la carpeta existe
@@ -65,7 +65,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $contenidoEnv .= "APP_TIMEZONE=" . trim($_POST['timezone'] ?? 'America/Bogota') . "\n";
         
         // --- Procesamiento de Imágenes ---
-        $imgDir = $ruta . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'img';
+        $imgDir = $ruta . '/assets/img';
         if (!is_dir($imgDir)) {
             mkdir($imgDir, 0777, true);
         }
@@ -81,7 +81,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 if (in_array($ext, $allowed)) {
                     // Usar nombre fijo si se prefiere, o original
                     $finalName = $filenameInput . '.' . $ext;
-                    $destPath = $imgDir . DIRECTORY_SEPARATOR . $finalName;
+                    $destPath = $imgDir . '/' . $finalName;
                     
                     if (move_uploaded_file($tmpName, $destPath)) {
                         chmod($destPath, 0666);
@@ -99,7 +99,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $contenidoEnv .= procesarImagen('favicon', 'APP_FAVICON', $imgDir, 'favicon');
         // --- Fin Procesamiento de Imágenes ---
         
-        $rutaEnv = $ruta . DIRECTORY_SEPARATOR . '.env';
+        $rutaEnv = $ruta . '/.env';
         
         if (file_put_contents($rutaEnv, $contenidoEnv) === false) {
              throw new Exception("No se pudo crear el archivo .env en: $rutaEnv");
